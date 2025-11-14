@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation=  "http://www.springframework.org/schema/beans 
+                            http://www.springframework.org/schema/beans/spring-beans.xsd
+                            http://www.springframework.org/schema/context 
+                            http://www.springframework.org/schema/context/spring-context.xsd
+                            http://www.springframework.org/schema/util 
+                            http://www.springframework.org/schema/util/spring-util.xsd"
+       default-init-method="initialize"
+       default-destroy-method="destroy">
+
+  <!-- First transition decision -->
+  <util:map id="shibboleth.authn.MFA.TransitionMap">
+    <entry key="">
+      <bean parent="shibboleth.authn.MFA.Transition"
+            p:nextFlowStrategy-ref="checkSecondFactor" />
+    </entry>
+  </util:map>
+
+  <!-- Script: decide next flow based on requested AAL -->
+  <bean id="checkSecondFactor"
+        parent="shibboleth.ContextFunctions.Scripted"
+        factory-method="inlineScript">
+    <constructor-arg>
+      <value>
+        <![CDATA[
+          var LoggerFactory = Java.type("org.slf4j.LoggerFactory");
+          var log = LoggerFactory.getLogger("MFA.Script");
+
+		      // Flow IDs
+	  var WEB_AUTHN_FLOW3 = "authn/WebAuthn3";
+          var WEB_AUTHN_FLOW = "authn/WebAuthn";   // ← ここを大文字 W に統一
+          var PASS_FLOW      = "authn/Password";
+
+          // GakuNin AAL ClassRef URIs
+          var AAL2 = "https://www.gakunin.jp/profile/AAL2";
+          var AAL3 = "https://www.gakunin.jp/profile/AAL3";
+
+          var nextFlow = PASS_FLOW;
+
+          var authCtx = input.getSubcontext("net.shibboleth.idp.authn.context.AuthenticationContext");
+          var reqPrinCtx = (authCtx != null)
+              ? authCtx.getSubcontext("net.shibboleth.idp.authn.context.RequestedPrincipalContext")
+              : null;
+
+          var aal2Requested = false;
+          var aal3Requested = false;
+
+          if (reqPrinCtx != null && reqPrinCtx.getRequestedPrincipals() != null) {
+            var it = reqPrinCtx.getRequestedPrincipals().iterator();
+            while (it.hasNext()) {
+              var p = it.next();
+              var s = String(p);
+              log.info("checkSecondFactor: requested principal = {}", s);
+
+              if (s.indexOf(AAL3) >= 0) { aal3Requested = true; }
+              if (s.indexOf(AAL2) >= 0) { aal2Requested = true; }
+            }
+          } else {
+            log.info("checkSecondFactor: RequestedPrincipalContext not present");
+          }
+
+          log.info("checkSecondFactor: flags -> AAL3={}, AAL2={}", aal3Requested, aal2Requested);
+
+          // Priority: AAL3 > AAL2 > Password
+          nextFlow = aal3Requested ? WEB_AUTHN_FLOW3
+                   : aal2Requested ? WEB_AUTHN_FLOW
+                   :                 PASS_FLOW;
+
+          log.info("checkSecondFactor: nextFlow = {}", nextFlow);
+          nextFlow;
+        ]]>
+      </value>
+    </constructor-arg>
+  </bean>
+</beans>

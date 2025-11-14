@@ -1,0 +1,140 @@
+#### Relying Party properties
+
+# The relying party ID. Must be a valid domain string. A public key credential is only registered and valid for a single relying party ID.
+idp.authn.webauthn.relyingPartyId = nogshib-idp.cis.ibaraki.ac.jp
+
+# A human-palatable name of the Relying Party
+idp.authn.webauthn.relyingPartyName = nogshib-idp.cis.ibaraki.ac.jp
+
+# Allow any port on that origin
+idp.authn.webauthn.allowOriginPort = false
+
+# Allow any subdomain of that origin
+idp.authn.webauthn.allowOriginSubdomain = false
+
+# Allow credential registrations to be untrusted, the default. If false, this requires attestation statements from the
+
+# authenticator using 'idp.authn.webauthn.registration.attestationConveyancePreference = DIRECT' and FIDO metadata is
+# loaded and trusted.
+idp.authn.webauthn.allowUntrustedAttestation = true
+
+# Generic flow properties to adjust behavior
+idp.authn.webauthn.order = 1000
+idp.authn.webauthn.forcedAuthenticationSupported = true
+# The list below should be changed to reflect whatever locally- or
+# community-defined values are appropriate to represent WebAuthn. It is
+# strongly advised that the value not be specific to WebAuthn or any
+# particular technology to avoid lock-in.
+idp.authn.webauthn.supportedPrincipals = \
+    saml2/http://example.org/ac/classes/mfa, \
+    saml1/http://example.org/ac/classes/mfa
+
+# An override of origins this RP allows in a responses from an authenticator
+idp.authn.webauthn.origins = https://nogshib-idp.cis.ibaraki.ac.jp
+
+# The storage service to use as a credential repository
+idp.authn.webauthn.StorageService = shibboleth.StorageService
+
+#### Registration properties.
+
+# Should the registration process collect a username before initiating authentication?
+idp.authn.webauthn.registration.collectUsername = true
+
+# Does the registration page require authentication. Should always be true.
+idp.authn.webauthn.admin.registration.authenticate = true
+# Access policy for the registration flow
+idp.authn.webauthn.admin.registration.accessPolicy = AccessByCurrentUser
+# Restrict the usable authentication flows
+#idp.authn.webauthn.admin.registration.authenticationFlows =
+# Should user.id and display name be resolve from the attribute resolver?
+idp.authn.webauthn.admin.registration.resolveIdentityAttributes = true
+
+# The bean name of the user.id generator or lookup strategy
+#idp.authn.webauthn.registration.userid.strategy = shibboleth.authn.webauthn.RandomUserIdGenerator
+# If using the attribute context lookup strategy, which attribute should the user.id be taken from
+#idp.authn.webauthn.registration.userid.attributeId = WebAuthnUserID
+
+# The bean name of the user.displayName lookup strategy
+#idp.authn.webauthn.registration.displayname.strategy = shibboleth.authn.webauthn.SubjectDisplayNameLookupStrategy
+# If using the attribute context lookup strategy, which attribute should the user.displayName be taken from
+#idp.authn.webauthn.registration.displayname.attributeId = mail
+
+# Enable FIDO Alliance metadata? If you want to use the metadata service, you *must* download and set the trust root and the legal blob file headers
+#idp.authn.webauthn.metadata.enabled = true
+#idp.authn.webauthn.metadata.trustRootFile =
+#idp.authn.webauthn.metadata.expectedLegalHeaders = Retrieval and use of this BLOB indicates acceptance of the appropriate agreement located at https://fidoalliance.org/metadata/metadata-legal-terms/
+# Downloaded CRLs to check metadata signature revocation status.
+#idp.authn.webauthn.metadata.crls = file://
+
+
+## If you want to download the metadata from a URL when the IdP starts, you must specify a cache file (.bin) and the URL to fetch the metadata
+#idp.authn.webauthn.metadata.cacheFile =
+#idp.authn.webauthn.metadata.metadataBlobUrl = https://mds3.fidoalliance.org
+
+## If you want to load the metadata from a file *only*, set the metadata blob file location. This will override the metadataBlobUrl property
+#idp.authn.webauthn.metadata.metadataBlobFile =
+
+# Which authentication flows to require
+#idp.authn.webauthn.admin.registration.defaultAuthenticationMethods =
+
+# Require a resident/discoverable key (passkey) to be created when registering a credential. One-of 'discouraged', 'preferred', 'required'
+idp.authn.webauthn.registration.residentKey = required
+
+# Preferred set of COSE signature algorithms which a created credential will use. The sequence is ordered from the most preferred to the least. The client makes best effort to create the most preferred it can.
+idp.authn.webauthn.preferredPublicKeyParams = EdDSA,ES256,ES384,ES512,RS1,RS256,RS384,RS512
+
+# The authenticator attachment (authenticator type) requirement. One-of 'any', 'cross-platform', or 'platform'.
+#idp.authn.webauthn.registration.authenticatorAttachment = any
+
+# Require User Verification on registration
+idp.authn.webauthn.registration.userVerification = required
+
+# State the preference of the IdP during registration to receive an authenticator attestation. One-of 'none', 'indirect', 'direct', or 'enterprise'.
+idp.authn.webauthn.registration.attestationConveyancePreference = direct
+
+# Basic transformations that should be applied to the username that is initially collected in the registration flow
+idp.authn.webauthn.registration.username.uppercase = false
+idp.authn.webauthn.registration.username.lowercase = false
+idp.authn.webauthn.registration.username.trim = false
+
+
+#### Administrator properties
+
+idp.authn.webauthn.admin.management.logging = WebAuthnCredentialManagement
+idp.authn.webauthn.admin.management.accessPolicy = AccessByAdmin
+idp.authn.webauthn.admin.management.resolveAttributes = false
+#idp.authn.webauthn.admin.management.authenticationFlows =
+#idp.authn.webauthn.admin.management.postAuthenticationFlows =
+#idp.authn.webauthn.admin.management.defaultAuthenticationMethods = saml2/http://example.org/ac/classes/mfa
+idp.authn.webauthn.admin.management.authenticated = true
+
+#### Authentication properties
+
+# Which type of flow is supported? Usernameless or passwordless
+idp.authn.webauthn.usernameless.enabled = true
+
+# Enable this flow to act as a second factor. For example, after a password flow and only requiring a simple user gesture (user presence check)
+idp.authn.webauthn.2fa.enabled = true
+
+# Which previous factors are acceptable to allow the WebAuthn flow to act as a second factor of authentication e.g. authn/Password.
+idp.authn.webauthn.2fa.allowedPreviousFactors = authn/Password
+
+# Force second factor even if no acceptable previous factors ran
+idp.authn.webauthn.2fa.forceSecondFactorFlow = false
+
+# Display debug information about the registration and authentication ceremony on their respective views?
+idp.authn.webauthn.ui.debug = true
+
+# Should an event be built if there are no credentials found? Only applicable to passwordless authentication.
+idp.authn.webauthn.passwordless.signalEventOnNoCredentials = true
+idp.authn.webauthn.passwordless.noCredentialsEventId = NoRegisteredWebAuthnCredentials
+
+# Should a custom event be built of the userHandle supplied by the authenticator during authentication does not related
+# to any registered credentials?
+idp.authn.webauthn.signalEventOnNoCredentialsRegisteredForUserHandle = true
+idp.authn.webauthn.userHandleNoRegisteredCredentialsEventId = NoCredentialsRegisteredForUserHandle
+
+# Basic transformations that should be applied to the username that is collected as part of the usernameless flow
+idp.authn.webauthn.passwordless.username.uppercase = false
+idp.authn.webauthn.passwordless.username.lowercase = false
+idp.authn.webauthn.passwordless.username.trim = false

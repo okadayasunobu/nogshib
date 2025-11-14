@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util" xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:c="http://www.springframework.org/schema/c" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+    default-init-method="initialize" default-destroy-method="destroy">
+
+    <!-- 
+    System beans needed for extension to function, loaded after global.xml.
+    The default template shows an incomplete example authentication flow descriptor which can be
+    removed if not needed 
+    -->   
+    
+    <!-- WebAuthn authentication flow -->
+    <bean id="authn/WebAuthn" parent="shibboleth.AuthenticationFlow"
+            p:order="%{idp.authn.webauthn.order:1000}"
+            p:nonBrowserSupported="%{idp.authn.webauthn.nonBrowserSupported:false}"
+            p:passiveAuthenticationSupported="%{idp.authn.webauthn.passiveAuthenticationSupported:true}"
+            p:forcedAuthenticationSupported="%{idp.authn.webauthn.forcedAuthenticationSupported:true}"
+            p:proxyRestrictionsEnforced="%{idp.authn.webauthn.proxyRestrictionsEnforced:%{idp.authn.enforceProxyRestrictions:true}}"
+            p:proxyScopingEnforced="%{idp.authn.webauthn.proxyScopingEnforced:false}"
+            p:discoveryRequired="%{idp.authn.webauthn.discoveryRequired:false}"
+            p:lifetime="%{idp.authn.webauthn.lifetime:%{idp.authn.defaultLifetime:PT1H}}"
+            p:inactivityTimeout="%{idp.authn.webauthn.inactivityTimeout:%{idp.authn.defaultTimeout:PT30M}}"
+            p:reuseCondition-ref="#{'%{idp.authn.webauthn.reuseCondition:shibboleth.Conditions.TRUE}'.trim()}"
+            p:activationCondition-ref="#{'%{idp.authn.webauthn.activationCondition:shibboleth.Conditions.TRUE}'.trim()}"
+            p:subjectDecorator="#{getObject('%{idp.authn.webauthn.subjectDecorator:}'.trim())}">
+        <property name="supportedPrincipalsByString">
+            <bean parent="shibboleth.CommaDelimStringArray"
+                c:_0="#{'%{idp.authn.webauthn.supportedPrincipals:}'.trim()}" />
+        </property>
+    </bean>
+    
+    
+    <!-- Admim flow for WebAuthn credential registration -->
+    <bean parent="shibboleth.AdminFlow"
+            c:id="http://shibboleth.net/ns/profiles/admin/webauthn/register-credential"
+            p:loggingId="%{idp.authn.webauthn.admin.registration.logging:WebAuthnCredentialRegistration}"
+            p:policyName="%{idp.authn.webauthn.admin.registration.accessPolicy:AccessByCurrentUser}"
+            p:nonBrowserSupported="false"
+            p:authenticated="%{idp.authn.webauthn.admin.registration.authenticated:true}"
+            p:resolveAttributes="%{idp.authn.webauthn.admin.registration.resolveAttributes:true}">
+        <property name="authenticationFlows">
+           <bean parent="shibboleth.CommaDelimStringArray"
+             c:_0="#{'%{idp.authn.webauthn.admin.registration.authenticationFlows:}'.trim()}" />
+        </property>
+        <property name="postAuthenticationFlows">
+            <bean parent="shibboleth.CommaDelimStringArray"
+                c:_0="#{'%{idp.authn.webauthn.admin.registration.postAuthenticationFlows:}'.trim()}" />
+        </property>
+        <property name="defaultAuthenticationMethodsByString">
+            <bean parent="shibboleth.CommaDelimStringArray"
+                c:_0="#{'%{idp.authn.webauthn.admin.registration.defaultAuthenticationMethods:}'.trim()}" />
+         </property>
+    </bean>
+    
+    <!-- Admim flow for admins to manage user credential registrations -->
+    <bean parent="shibboleth.AdminFlow"
+            c:id="http://shibboleth.net/ns/profiles/admin/webauthn/manage-credentials"
+            p:loggingId="%{idp.authn.webauthn.admin.management.logging:WebAuthnCredentialManagement}"
+            p:policyName="%{idp.authn.webauthn.admin.management.accessPolicy:AccessByAdminUser}"
+            p:nonBrowserSupported="false"
+            p:authenticated="%{idp.authn.webauthn.admin.management.authenticated:true}"
+            p:resolveAttributes="%{idp.authn.webauthn.admin.management.resolveAttributes:true}">
+        <property name="authenticationFlows">
+           <bean parent="shibboleth.CommaDelimStringArray"
+             c:_0="#{'%{idp.authn.webauthn.admin.management.authenticationFlows:}'.trim()}" />
+        </property>
+        <property name="postAuthenticationFlows">
+            <bean parent="shibboleth.CommaDelimStringArray"
+                c:_0="#{'%{idp.authn.webauthn.admin.management.postAuthenticationFlows:}'.trim()}" />
+        </property>
+        <property name="defaultAuthenticationMethodsByString">
+            <bean parent="shibboleth.CommaDelimStringArray"
+                c:_0="#{'%{idp.authn.webauthn.admin.management.defaultAuthenticationMethods:saml2/http://example.org/ac/classes/mfa}'.trim()}" />
+         </property>
+    </bean>
+    
+     <!-- Singleton clients and repositories -->
+     <!--  TODO configure these with getbeans and properties -->
+    <bean id="shibboleth.authn.WebAuthn.DefaultWebAuthnAuthenticationClientFactory" scope="singleton"
+        class="net.shibboleth.idp.plugin.authn.webauthn.client.impl.YubicoWebauthnClientFactory"
+        p:relyingPartyId="%{idp.authn.webauthn.relyingPartyId}" 
+        p:relyingPartyName="%{idp.authn.webauthn.relyingPartyName}"
+        p:allowOriginPort="%{idp.authn.webauthn.allowOriginPort:false}"
+        p:allowOriginSubdomain="%{idp.authn.webauthn.allowOriginSubdomain:false}"
+        p:allowUntrustedAttestation="%{idp.authn.webauthn.allowUntrustedAttestation:true}"
+        p:origins="%{idp.authn.webauthn.origins:}"
+        p:preferredPublickeyParams="%{idp.authn.webauthn.preferredPublicKeyParams:EdDSA,ES256,ES384,ES512,RS1,RS256,RS384,RS512}"
+        p:credentialRepository-ref="shibboleth.authn.WebAuthn.DefaultCredentialRepository"
+        p:fidoMetadataService="#{'false'.equals('%{idp.authn.webauthn.metadata.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory')}"/>
+    
+        
+    <bean id="shibboleth.authn.WebAuthn.DefaultCredentialRepository" scope="singleton"
+        class="net.shibboleth.idp.plugin.authn.webauthn.storage.impl.IdPStorageServiceCredentialRespository"
+        p:storageService-ref="#{'%{idp.authn.webauthn.StorageService:shibboleth.StorageService}'.trim()}"
+        p:serializer-ref="shibboleth.authn.WebAuthn.DefaultCredentialRepositoryStorageSerializer"/>        
+        
+     <bean id="shibboleth.authn.WebAuthn.DefaultCredentialRepositoryStorageSerializer"
+        class="net.shibboleth.idp.plugin.authn.webauthn.storage.impl.CredentialRegistrationSerializer"/> 
+        
+    <!-- The optional FIDO Metadata service. Lazy-init, only constructed if used. -->   
+    <bean id="shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory" 
+        class="net.shibboleth.idp.plugin.authn.webauthn.metadata.impl.FidoMetadataServiceFactory" scope="singleton"
+        lazy-init="true"
+        p:trustRootFile="%{idp.authn.webauthn.metadata.trustRootFile:}"
+        p:cacheFile="%{idp.authn.webauthn.metadata.cacheFile:}"
+        p:crls="%{idp.authn.webauthn.metadata.crls:#{null}}"
+        p:metadataBlobUrl="%{idp.authn.webauthn.metadata.metadataBlobUrl:https://mds3.fidoalliance.org}"
+        p:metadataBlobFile="%{idp.authn.webauthn.metadata.metadataBlobFile:}"
+        p:expectedLegalHeaders="%{idp.authn.webauthn.metadata.expectedLegalHeaders:Retrieval and use of this BLOB indicates acceptance of the appropriate agreement located at https://fidoalliance.org/metadata/metadata-legal-terms/}"/>
+           
+     <!-- The optional supplementry FIDO passkey metadata service. Lazy-init, only constructed if used. -->   
+    <bean id="shibboleth.authn.WebAuthn.DefaultPasskeyAaguidMetadataServiceFactory" 
+        class="net.shibboleth.idp.plugin.authn.webauthn.metadata.impl.PasskeyAaguidMetadataFactory" scope="singleton"
+        lazy-init="true"
+        p:passkeyAaguidFile="%{idp.authn.webauthn.metadata.aaguid.passkeyAaguidFile:}"/>
+     
+     <!-- 
+     
+        Create a default object mapper. Setup should not change once injected.
+        Note, this mapper has very specific features which allows the correct construction of the WebAuthn
+        registration and authentication options for requests.
+     
+      -->
+    <bean id="shibboleth.authn.WebAuthn.JSONObjectMapper" class="com.fasterxml.jackson.databind.ObjectMapper" />
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingBean"
+        p:targetObject-ref="shibboleth.authn.WebAuthn.JSONObjectMapper" p:targetMethod="setSerializationInclusion">
+        <property name="arguments">
+            <util:constant static-field="com.fasterxml.jackson.annotation.JsonInclude.Include.NON_ABSENT" />
+        </property>
+    </bean>
+    
+    <bean class="org.springframework.beans.factory.config.MethodInvokingBean"
+        p:targetObject-ref="shibboleth.authn.WebAuthn.JSONObjectMapper" p:targetMethod="configure">
+        <property name="arguments">
+            <list>
+            <util:constant static-field="com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES" />
+            <value type="java.lang.Boolean">true</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingBean"
+        p:targetObject-ref="shibboleth.authn.WebAuthn.JSONObjectMapper" p:targetMethod="registerModule">
+        <property name="arguments">
+            <bean class="com.fasterxml.jackson.datatype.jsr310.JavaTimeModule" />
+        </property>
+    </bean>
+    
+    <bean class="org.springframework.beans.factory.config.MethodInvokingBean"
+        p:targetObject-ref="shibboleth.authn.WebAuthn.JSONObjectMapper" p:targetMethod="registerModule">
+        <property name="arguments">
+            <bean class="com.fasterxml.jackson.datatype.jdk8.Jdk8Module" />
+        </property>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingBean"
+        p:targetObject-ref="shibboleth.authn.WebAuthn.JSONObjectMapper" p:targetMethod="setDateFormat">
+        <property name="arguments">
+            <bean class="java.text.SimpleDateFormat" c:_0="yyyy-MM-dd'T'HH:mm:ss.SSSZZ" />
+        </property>
+    </bean>
+    
+    <!-- Principal serialization support. -->
+    <bean p:id="WebAuthnUserId" class="net.shibboleth.idp.authn.principal.GenericPrincipalService"
+            c:claz="net.shibboleth.idp.plugin.authn.webauthn.principal.WebAuthnUserIdPrinicpal">
+        <constructor-arg name="serializer">
+            <bean class="net.shibboleth.idp.authn.principal.SimplePrincipalSerializer"
+                c:claz=" net.shibboleth.idp.plugin.authn.webauthn.principal.WebAuthnUserIdPrinicpal" c:name="WEBAUTHNUSERID" />
+        </constructor-arg>
+    </bean>
+
+  
+</beans>

@@ -1,0 +1,192 @@
+<flow xmlns="http://www.springframework.org/schema/webflow" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/webflow http://www.springframework.org/schema/webflow/spring-webflow.xsd"
+    parent="admin.abstract">
+    
+    
+    <!-- Start action. -->        
+    <action-state id="InitializeProfileRequestContext">
+        <evaluate expression="InitializeProfileRequestContext" />
+        <evaluate expression="PopulateInlineEnrolmentContext" />
+        <evaluate expression="FlowStartPopulateAuditContext" />
+        <evaluate expression="PopulateClientStorageLoadContext" />
+        <evaluate expression="'proceed'" />        
+
+        <transition on="proceed" to="WebAuthnClientStorageLoad" />
+        <transition on="NoLoadNeeded" to="DecideIfUsernameCollectionIsRequired" />
+    </action-state>
+    
+    <subflow-state id="WebAuthnClientStorageLoad" subflow="client-storage/read">
+        <input name="calledAsSubflow" value="true" />
+        <transition on="proceed" to="DecideIfUsernameCollectionIsRequired"/>
+    </subflow-state>
+    
+    <!-- Has username collection been configured. Username collection is not a requirement of the flow, it adds
+    WebAuthn credentials to an inital context which can inform the MFA flow -->
+    <decision-state id="DecideIfUsernameCollectionIsRequired">
+        <if test="IsAdminUsernameCollectionEnabled.test(opensamlProfileRequestContext)"
+            then="CollectUsernameView" 
+            else="DoAdminPreamble" />   
+    </decision-state>
+
+    
+    <view-state id="CollectUsernameView" view="webauthn/webauthn-register-username">
+        <on-render>
+            <evaluate expression="environment" result="viewScope.environment" />
+            <evaluate expression="opensamlProfileRequestContext" result="viewScope.profileRequestContext" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPDigester')" result="requestScope.cspDigester" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPNonce')" result="requestScope.cspNonce" />            
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext))" result="viewScope.webauthnRegContext" />
+            <evaluate expression="T(net.shibboleth.shared.codec.HTMLEncoder)" result="viewScope.encoder" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeRequest()" result="viewScope.request" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeResponse()" result="viewScope.response" />
+        </on-render>
+       <transition on="proceed" to="ExtractUsernameAndPopulateContext" />
+       
+    </view-state>
+    
+    <!-- 
+        This creates an initial context with the username and existing credentials which can be used by the MFA
+        logic to determine which flow should be used e.g. has existing webAuthn credentials or not, and so we do not
+        need username collection during passwordless authentication as we have already collected it.
+    -->
+    <action-state id="ExtractUsernameAndPopulateContext">
+        <evaluate expression="PopulateInitialWebAuthnRegistrationContext"/>
+        <evaluate expression="ExtractUsernameFromForm"/>
+        <evaluate expression="InitializeSubjectCanonicalizationContext"/>
+        <evaluate expression="PopulateSubjectCanonicalizationContext" />
+        <evaluate expression="'proceed'" />
+        
+        <!-- Branch to determine if authentication is required. -->
+        <transition on="proceed" to="CallSubjectCanonicalization" />
+    </action-state>
+    
+    <!-- Call the c14n subflow here so we can c14n the username input by the user to lookup the correct credentials
+    and align with the authentication result -->
+    <subflow-state id="CallSubjectCanonicalization" subflow="c14n">
+        <input name="calledAsSubflow" value="true" />
+        <transition on="proceed" to="LookupRegisteredCredentialsPostC14n" />
+        
+        <!-- continue on error, we will just have no existing credentials -->
+        <transition on="SubjectCanonicalizationError" to="LookupRegisteredCredentialsPostC14n"/>
+    </subflow-state>
+    
+    <!-- After we canonicalize the username input, use that to lookup registered credentials -->
+    <action-state id="LookupRegisteredCredentialsPostC14n">
+        <evaluate expression="UpdateRegistrationContextUsernameWithC14nPrincipal"/>
+        <evaluate expression="LookupRegisteredCredentialsPostC14n"/>        
+        <evaluate expression="'proceed'" />
+        
+        <!-- Branch to determine if authentication is required. -->
+        <transition on="proceed" to="DoAdminPreamble" />
+     </action-state>
+
+    <!-- Resume actual flow processing. -->
+
+    <action-state id="DoProfileWork">
+        <evaluate expression="CheckAccess" />
+        <evaluate expression="'proceed'" />
+        
+        <transition on="proceed" to="GeneratePublicKeyCredentialCreationOptions" />
+    </action-state>   
+    
+    <!-- Recreate a registration context from the result of authentication, and create WebAuthn GET creation options -->
+     <action-state id="GeneratePublicKeyCredentialCreationOptions">
+        <evaluate expression="PopulateWebAuthnRegistrationContext"/>
+        <evaluate expression="LookupRegisteredCredentials"/>
+        <evaluate expression="LabelCredentialRecords"/>
+        <evaluate expression="GenerateServerChallenge"/>
+        <evaluate expression="AddUserName"/>
+        <evaluate expression="AddUserId"/>
+        <evaluate expression="AddDisplayName"/>
+        <evaluate expression="AddResidentKeyRequirement"/>
+        <evaluate expression="AddAuthenticatorAttachmentRequirement"/>
+        <evaluate expression="AddAttestationConveyancePreference"/>
+        <evaluate expression="AddUserVerificationRequired"/>
+        <evaluate expression="CreatePublicKeyCredentialCreationOptions"/>
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="DisplayWebAuthnRegistrationView" />    
+    </action-state>     
+    
+    <view-state id="DisplayWebAuthnRegistrationView" view="webauthn/webauthn-register">
+        <on-render>
+            <evaluate expression="environment" result="viewScope.environment" />
+            <evaluate expression="opensamlProfileRequestContext" result="viewScope.profileRequestContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext))" result="viewScope.webauthnRegContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.InlineEnrolmentContext))" result="viewScope.webauthnInlineEnrolmentContext" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPDigester')" result="requestScope.cspDigester" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPNonce')" result="requestScope.cspNonce" />   
+            <evaluate expression="T(net.shibboleth.shared.codec.HTMLEncoder)" result="viewScope.encoder" />
+            <evaluate expression="T(net.shibboleth.idp.plugin.authn.webauthn.impl.WebAuthnEncoder)" result="viewScope.webAuthnEncoder"/>
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeRequest()" result="viewScope.request" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeResponse()" result="viewScope.response" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('RegistrationInfoMessageFunction')" result="viewScope.registrationInfoMessageFunction" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('RegistrationErrorMessageFunction')" result="viewScope.registrationErrorMessageFunction" />
+        </on-render>
+        
+       <transition on="finish" to="RegistrationComplete" />
+       <transition on="resume" to="RegistrationCompleteResumeFlow" />
+       <transition on="addKey" to="AddKey" />
+       <transition on="deleteKey" to="DeleteKey" />
+       <on-exit>
+         <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext)).ensureSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationInformationContext)).reset()"/>
+         <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext)).ensureSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationErrorContext)).reset()"/>
+       </on-exit>       
+    </view-state>
+    
+   <action-state id="AddKey">
+        <evaluate expression="ExtractPublicKeyCredentialAttestationFromFormRequest"/>
+        <evaluate expression="CheckRegistrationPolicy"/>        
+        <evaluate expression="ValidateAuthenticatorAttestationResponse"/>
+        <evaluate expression="StorePublicKeyCredential"/> 
+        <evaluate expression="'proceed'" />
+        
+        <transition on="InvalidRegistration" to="GeneratePublicKeyCredentialCreationOptions"/>
+        <transition on="proceed" to="DoClientStorageSaveContext">
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext)).ensureSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationInformationContext)).addClassifiedMessage('ValidRegistration')"/>
+        </transition>
+    </action-state>
+    
+    <action-state id="DeleteKey">
+        <evaluate expression="ExtractKeyRemovalInformationFromFormRequest"/>
+        <evaluate expression="DeletePublicKeyCredential"/>
+        
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="DoClientStorageSaveContext">
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext)).ensureSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationInformationContext)).addClassifiedMessage('KeyRemoved')"/>       
+        </transition>
+    </action-state>
+    
+    <action-state id="DoClientStorageSaveContext">
+        <evaluate expression="PopulateClientStorageSaveContext" />
+        <evaluate expression="'proceed'" />
+
+        <transition on="proceed" to="WebAuthnClientStorageSave" />
+        <transition on="NoSaveNeeded" to="GeneratePublicKeyCredentialCreationOptions" />
+    </action-state>
+    
+    <subflow-state id="WebAuthnClientStorageSave" subflow="client-storage/write">
+        <input name="calledAsSubflow" value="true" />
+        <transition on="proceed" to="GeneratePublicKeyCredentialCreationOptions"/>
+    </subflow-state>
+    
+    <end-state id="RegistrationCompleteResumeFlow" view="externalRedirect:serverRelative:#{InlineEnrolmentRedirectFunction.apply(flowRequestContext, opensamlProfileRequestContext)}"/>
+
+    <end-state id="RegistrationComplete" view="webauthn/webauthn-end">
+         <on-entry>
+            <evaluate expression="environment" result="requestScope.environment" />
+            <evaluate expression="WriteAuditLog" />
+            <evaluate expression="opensamlProfileRequestContext" result="requestScope.profileRequestContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext))" result="requestScope.webauthnRegContext" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPDigester')" result="requestScope.cspDigester" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPNonce')" result="requestScope.cspNonce" />   
+            <evaluate expression="T(net.shibboleth.shared.codec.HTMLEncoder)" result="requestScope.encoder" />
+            <evaluate expression="T(net.shibboleth.idp.plugin.authn.webauthn.impl.WebAuthnEncoder)" result="requestScope.webAuthnEncoder"/>
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeRequest()" result="requestScope.request" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeResponse()" result="requestScope.response" />
+        </on-entry>
+    </end-state>
+    
+    <bean-import resource="webauthn-registration-beans.xml" />
+    <bean-import resource="../../authn/WebAuthn/webauthn-abstract-beans.xml" />
+	
+</flow>

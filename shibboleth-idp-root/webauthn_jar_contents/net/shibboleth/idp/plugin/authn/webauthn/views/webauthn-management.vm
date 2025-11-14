@@ -1,0 +1,137 @@
+##
+## Velocity Template for displaying the WebAuthn administrator view
+##
+## Velocity context will contain the following properties
+## flowExecutionUrl - the form action location
+## flowRequestContext - the Spring Web Flow RequestContext
+## flowExecutionKey - the SWF execution key (this is built into the flowExecutionUrl)
+## profileRequestContext - root of context tree
+## webAuthnManContext = WebAuthn management context
+## authenticationWarningContext - context with login warning state
+## encoder - HTMLEncoder class
+## webAuthnEncoder - WebAuthnEncoder class
+## request - HttpServletRequest
+## response - HttpServletResponse
+## environment - Spring Environment object for property resolution
+## custom - arbitrary object injected by deployer
+## adminInfoMessageFunction - function to return info admin messages
+## adminErrorMessageFunction - function to return error admin messages
+
+## Add CSP directives
+#set ($areYouSure =  "return confirm('#springMessageText('idp.webauthn.register.credential.remove.confirm', 'Are you sure')');")
+#set ($nonce = $cspNonce.generateIdentifier())
+$response.addHeader("Content-Security-Policy", "default-src 'none'; style-src 'self'; img-src 'self' data:; script-src-elem 'nonce-$nonce'; script-src-attr 'unsafe-hashes' 'sha256-$cspDigester.apply($areYouSure)'")
+
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>#springMessageText("idp.title", "Web Login Service")</title>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <meta http-equiv="refresh" content="300;url=$flowExecutionUrl&_eventId=finish#parse("csrf/csrf-qparam.vm")">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+      <link rel="stylesheet" type="text/css" href="$request.getContextPath()#springMessageText("idp.css", "/css/placeholder.css" )">
+      <link rel="stylesheet" type="text/css" href="$request.getContextPath()/css/webauthn.css">
+         
+   </head>
+   <body>
+      <main class="main">
+         <header>
+            <img class="main-logo" src="$request.getContextPath()#springMessageText("idp.logo", "/images/placeholder-logo.png" )" alt="#springMessageText(" idp.logo.alt-text", "logo" )" />
+         </header>
+         <section>
+            <div id="supportedDiv">
+               <div class="centre">
+                  #set ($infoMessage = $adminInfoMessageFunction.apply($profileRequestContext))
+                  #if ($infoMessage)
+                        <p id="reg-success-outcome" class="output-message output--success">$encoder.encodeForHTML($infoMessage)</p>        
+                  #end                  
+                  #set ($errorMessage = $adminErrorMessageFunction.apply($profileRequestContext))
+                  #if ($errorMessage)
+                        <p id="reg-error-outcome" class="output-message output--error">$encoder.encodeForHTML($errorMessage)</p>        
+                  #end 
+                  <div class="hidden output-message output--error" id="error_div">
+                        <p id="error_message"></p>
+                  </div>                
+                  <div>
+                     <h1>#springMessageText("idp.webauthn.admin.header","Registered keys for") '$encoder.encodeForHTML($webAuthnManContext.searchUsername)'</h1>
+                     #if ($webAuthnManContext.foundCredentials)
+                         <table>
+                            <tr>
+                               <th>#springMessageText("idp.webauthn.admin.table.header.keyName", "Key Name")</th>
+                               <th>#springMessageText("idp.webauthn.admin.table.header.authenticatorDescription", "Authenticator")</th>
+                               <th>#springMessageText("idp.webauthn.admin.table.header.authenticatorIcon", "Icon")</th>
+                               <th>#springMessageText("idp.webauthn.admin.table.header.labels", "Labels")</th>
+                               <th>#springMessageText("idp.webauthn.admin.table.header.registrationTime", "Registration Time")</th>
+                               <th>#springMessageText("idp.webauthn.admin.table.header.hasMetadata", "Metadata?")</th>
+                               <th>#springMessageText("idp.webauthn.admin.table.header.action", "Action")</th>
+                            </tr>
+                            #foreach($cred in $webAuthnManContext.foundCredentials)
+                                <tr>
+                                   <td>$encoder.encodeForHTML($cred.credentialRecord.nickname)</td>
+                                   #if ($cred.authenticatorDescription)
+                                       <td>$encoder.encodeForHTML($cred.authenticatorDescription)</td>
+                                   #else
+                                        <td>#springMessageText("idp.webauthn.admin.table.unknownCredential", "unknown")</td>
+                                   #end
+                                   #if ($cred.icon)
+                                        <td> <img class="authenticator-logo" src="$encoder.encodeForHTML($cred.icon)" alt="$encoder.encodeForHTML($cred.credentialRecord.nickname)-authenticator-icon"/></td> 
+                                   #else
+                                        <td></td>
+                                   #end
+                                   <td>
+                                    #foreach($label in $cred.labels)
+                                        <span class="label info">$encoder.encodeForHTML($label)</span>
+                                    #end  
+                                   </td>
+                                   <td>$encoder.encodeForHTML($webAuthnEncoder.formatInstant($cred.credentialRecord.registrationTime))</td>
+                                   <td>
+                                        #if ($webAuthnEncoder.isAuthenticatorMetadataAttached($cred))
+                                           #springMessageText("idp.webauthn.admin.table.hasMetadata", "Yes") 
+                                       #else
+                                           #springMessageText("idp.webauthn.admin.table.noMetadata", "No")
+                                       #end
+                                   </td>
+                                   <td>
+                                      <form id="delete_key_form" action="$flowExecutionUrl" method="post">
+                                         #parse("csrf/csrf.vm")
+                                         <input type="hidden" name="credentialId" value="$cred.credentialRecord.credentialIdBase64Url"/>
+                                         <button class="webauthn-table-button" onclick="$areYouSure" id="removeButton" type="submit" name="_eventId_deleteKey">
+                                        #springMessageText("idp.webauthn.admin.credential.remove", "Remove")</button>
+                                      </form>                                      
+                                   </td>
+                                </tr>
+                             #end 
+                         </table>                                        
+                     #else
+                        <div><span>#springMessageText("idp.webauthn.admin.noKeys", "There are no registered keys")</span></div>
+                     #end
+                     
+                     <br/>
+                        
+                    <form id="finish_button_form" action="$flowExecutionUrl" method="post" class="inline">
+                       #parse("csrf/csrf.vm")   
+                       <div class="grid">
+                        <div class="grid-item">
+                            <button id="searchButton" type="submit" name="_eventId_again">#springMessageText("idp.webauthn.admin.search.again", "Search again")</button>
+                             <button id="finish_button" type="submit" name="_eventId_finish">#springMessageText("idp.webauthn.admin.finish", "Finish")</button>
+                        </div> 
+                      </div>                     
+                    </form>
+                  </div>
+         
+               </div>
+               <div id="unsupportedDiv" class="hidden">
+                  #springMessageText("idp.webauthn.admin.unsupported", "Your browser is not WebAuthn compatible")
+               </div>
+            </div>
+         </section>
+      </main>
+      <footer>
+         <div class="cc">
+            <p class="footer-text">#springMessageText("idp.footer", "Insert your footer text here.")</p>
+         </div>
+      </footer>
+      </div>    
+   </body>
+</html>

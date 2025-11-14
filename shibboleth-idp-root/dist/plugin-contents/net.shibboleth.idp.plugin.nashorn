@@ -1,0 +1,12 @@
+#Files Copied 2025-09-22T08:06:14.329324821Z
+#Mon Sep 22 17:06:14 JST 2025
+idp.plugin.file.1=dist/plugin-webapp/WEB-INF/lib/asm-analysis-7.3.1.jar
+idp.plugin.version=2.0.0
+idp.plugin.file.2=dist/plugin-webapp/WEB-INF/lib/asm-7.3.1.jar
+idp.plugin.file.3=dist/plugin-webapp/WEB-INF/lib/asm-tree-7.3.1.jar
+idp.plugin.relativePaths=true
+idp.plugin.file.4=dist/plugin-webapp/WEB-INF/lib/nashorn-core-15.4.jar
+idp.plugin.file.5=dist/plugin-webapp/WEB-INF/lib/asm-util-7.3.1.jar
+idp.plugin.file.6=dist/plugin-webapp/WEB-INF/lib/idp-plugin-scripting-api-2.0.0.jar
+idp.plugin.file.7=dist/plugin-webapp/WEB-INF/lib/asm-commons-7.3.1.jar
+idp.plugin.file.8=dist/plugin-webapp/WEB-INF/lib/idp-plugin-nashorn-jdk-impl-2.0.0.jar

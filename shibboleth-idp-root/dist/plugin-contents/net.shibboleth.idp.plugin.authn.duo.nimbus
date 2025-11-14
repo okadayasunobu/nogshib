@@ -1,0 +1,7 @@
+#Files Copied 2025-09-22T08:06:40.274305451Z
+#Mon Sep 22 17:06:40 JST 2025
+idp.plugin.file.1=dist/plugin-webapp/WEB-INF/lib/idp-plugin-duo-impl-2.2.2.jar
+idp.plugin.version=2.2.2
+idp.plugin.file.2=dist/plugin-webapp/WEB-INF/lib/idp-plugin-duo-api-2.2.2.jar
+idp.plugin.file.3=dist/plugin-webapp/WEB-INF/lib/idp-plugin-duo-nimbus-client-impl-2.2.2.jar
+idp.plugin.relativePaths=true

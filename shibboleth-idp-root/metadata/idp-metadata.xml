@@ -1,0 +1,58 @@
+<md:EntityDescriptor entityID="https://nogshib-idp.cis.ibaraki.ac.jp/idp/shibboleth" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+    <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+        <md:Extensions>
+            <shibmd:Scope regexp="false">cis.ibaraki.ac.jp</shibmd:Scope>
+        </md:Extensions>
+        <md:KeyDescriptor use="signing">
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+MIIDKTCCAhGgAwIBAgIUUnMGRSX8w4/ve6Dvk6+1eIiJGwwwDQYJKoZIhvcNAQELBQAwKDEmMCQG
+A1UEAwwdbm9nc2hpYi1pZHAuY2lzLmliYXJha2kuYWMuanAwHhcNMjUwNTMwMDkzNjUxWhcNMjYw
+NTMwMDkzNjUxWjAoMSYwJAYDVQQDDB1ub2dzaGliLWlkcC5jaXMuaWJhcmFraS5hYy5qcDCCASIw
+DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALSxhNzT9IEv6yD30lH2csI0Rwyap5Dd+99JSeea
+ceeQWifcUaxwP9Vy/ItxYqhxP/kTOgMGP0kRoxC6m/POEWMMylYDln6Bd5BMUaGmMclvUgO7Nltk
+RXal+utcp2J39mwITXGRNeyYroHVHI9ejw5B81philNX7eChe+VHNAIjO5PH30eDTAEX5iGdynTE
+EVPfv4UOPTwrG4b4OGtxagSD8iLLjitN9ZK/ujVLK/g++sMugdQyyKFN3tgPjX9kXRqcMqj1Id2h
+WWjRh29uaJ7W2uqKcxGXvrn+5xsiDYB0+icjDv+D0nmVm757Cq154i79B8V9T/IpbXDugHkyRMcC
+AwEAAaNLMEkwKAYDVR0RBCEwH4Idbm9nc2hpYi1pZHAuY2lzLmliYXJha2kuYWMuanAwHQYDVR0O
+BBYEFB9TKla0nlGssZ0iOcCBye4AztPGMA0GCSqGSIb3DQEBCwUAA4IBAQCRd2qJUlHk66AZiTP0
+2AjRF2gRRxtu4FSlXZAb9RXiaEia6nMnqRp52u8fpNLUZ0iKbdplAMXXIDU7ZQiHJqbnfFnMnCJa
+TUv6UDaCxYWd0N3jpZxuxQnwoRw/qKk6oeGK/h9fpBK2g5K0dpw7s0+s0MEobkb2fOheIWzbV+Xa
+Alyh79oDX17MZFLOnFItxpCo7h88gav4I+vG6siAE9jhAg2kNdd9uPgDE5FYF789aMHLXsXlTZLi
+SsdW1lxdB3YuqsqSYTxXjbw0jo5zVO4BaLw1Wqjm/X0PHC8xjkj1tU4k+P+6c/LNrHHZ1fDtMhoL
+m/N2fUcxyAx7O89Vm5XB
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+        <md:KeyDescriptor use="encryption">
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+MIIDKTCCAhGgAwIBAgIUUnMGRSX8w4/ve6Dvk6+1eIiJGwwwDQYJKoZIhvcNAQELBQAwKDEmMCQG
+A1UEAwwdbm9nc2hpYi1pZHAuY2lzLmliYXJha2kuYWMuanAwHhcNMjUwNTMwMDkzNjUxWhcNMjYw
+NTMwMDkzNjUxWjAoMSYwJAYDVQQDDB1ub2dzaGliLWlkcC5jaXMuaWJhcmFraS5hYy5qcDCCASIw
+DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALSxhNzT9IEv6yD30lH2csI0Rwyap5Dd+99JSeea
+ceeQWifcUaxwP9Vy/ItxYqhxP/kTOgMGP0kRoxC6m/POEWMMylYDln6Bd5BMUaGmMclvUgO7Nltk
+RXal+utcp2J39mwITXGRNeyYroHVHI9ejw5B81philNX7eChe+VHNAIjO5PH30eDTAEX5iGdynTE
+EVPfv4UOPTwrG4b4OGtxagSD8iLLjitN9ZK/ujVLK/g++sMugdQyyKFN3tgPjX9kXRqcMqj1Id2h
+WWjRh29uaJ7W2uqKcxGXvrn+5xsiDYB0+icjDv+D0nmVm757Cq154i79B8V9T/IpbXDugHkyRMcC
+AwEAAaNLMEkwKAYDVR0RBCEwH4Idbm9nc2hpYi1pZHAuY2lzLmliYXJha2kuYWMuanAwHQYDVR0O
+BBYEFB9TKla0nlGssZ0iOcCBye4AztPGMA0GCSqGSIb3DQEBCwUAA4IBAQCRd2qJUlHk66AZiTP0
+2AjRF2gRRxtu4FSlXZAb9RXiaEia6nMnqRp52u8fpNLUZ0iKbdplAMXXIDU7ZQiHJqbnfFnMnCJa
+TUv6UDaCxYWd0N3jpZxuxQnwoRw/qKk6oeGK/h9fpBK2g5K0dpw7s0+s0MEobkb2fOheIWzbV+Xa
+Alyh79oDX17MZFLOnFItxpCo7h88gav4I+vG6siAE9jhAg2kNdd9uPgDE5FYF789aMHLXsXlTZLi
+SsdW1lxdB3YuqsqSYTxXjbw0jo5zVO4BaLw1Wqjm/X0PHC8xjkj1tU4k+P+6c/LNrHHZ1fDtMhoL
+m/N2fUcxyAx7O89Vm5XB
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+        <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://nogshib-idp.cis.ibaraki.ac.jp/idp/profile/SAML2/SOAP/ArtifactResolution" />
+        <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign" Location="https://nogshib-idp.cis.ibaraki.ac.jp/idp/profile/SAML2/POST-SimpleSign/SSO" />
+        <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://nogshib-idp.cis.ibaraki.ac.jp/idp/profile/SAML2/Redirect/SSO" />
+        <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://nogshib-idp.cis.ibaraki.ac.jp/idp/profile/SAML2/POST/SSO" />
+    </md:IDPSSODescriptor>
+
+</md:EntityDescriptor>

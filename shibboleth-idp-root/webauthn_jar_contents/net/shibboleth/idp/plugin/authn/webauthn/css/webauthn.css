@@ -1,0 +1,104 @@
+@charset "UTF-8";
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th,
+td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    font-weight: bold;
+}
+
+tr:hover {
+    background-color: rgb(237, 241, 255);
+}
+
+.inline {
+    display: inline;
+}
+
+
+/* Style the button that is used to open and close the collapsible content */
+.collapsible-debug {
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active,
+.collapsible:hover {
+    background-color: #ccc;
+}
+
+/* Style the collapsible content. Note: hidden by default */
+.debug {
+    padding: 0 18px;
+    display: none;
+    overflow: hidden;
+    background-color: #f1f1f1;
+}
+
+.collapsible:after {
+    content: '\02795';
+    /* Unicode character for "plus" sign (+) */
+    font-size: 13px;
+    color: white;
+    float: right;
+    margin-left: 5px;
+}
+
+.active:after {
+    content: "\2796";
+    /* Unicode character for "minus" sign (-) */
+}
+
+.hidden {
+    display: none;
+}
+
+.centre {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.webauthn-table-button {
+    background-color: rgb(221, 5, 0);
+    /* Green */
+    border: none;
+    color: white;
+    padding: 10px 25px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+
+.authenticator-logo {
+    vertical-align: middle;
+    max-width: 2em;
+
+}
+
+.label {
+    color: white;
+    padding: 5px;
+    font-size: 75%;
+}
+
+.info {
+    background-color: #2196F3;
+}

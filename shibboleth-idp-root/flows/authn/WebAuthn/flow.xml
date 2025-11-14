@@ -1,0 +1,160 @@
+<flow xmlns="http://www.springframework.org/schema/webflow" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/webflow http://www.springframework.org/schema/webflow/spring-webflow.xsd"
+    parent="authn.abstract, authn/conditions">
+    
+     <!-- Test if we are operating as a second-factor -->
+     <decision-state id="DetermineSecondFactorLogin">
+        <if test="IsSecondFactor.test(opensamlProfileRequestContext)"
+            then="SecondFactorLogin" 
+            else="DetermineUsernamelessFlow" />        
+    </decision-state>
+    
+    <!-- if usernameless flow assume username input is not required. Otherwise prompt for username -->
+    <decision-state id="DetermineUsernamelessFlow">
+        <if test="IsUsernamelessFlow.test(opensamlProfileRequestContext)"
+            then="UsernamelessLogin" 
+            else="PasswordlessLogin" />        
+    </decision-state>
+    
+    <!-- 
+        Passwordless login: If Passwordless: do not require ResidentKey, require UV, UP, and provide previous credentials based on username.
+     -->
+     <action-state id="PasswordlessLogin">
+        <evaluate expression="PopulateWebAuthnAuthenticationContextPasswordless"/>
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="DetermineIfUsernameCollectionIsRequired" />    
+    </action-state>
+    
+    <!-- If the registration context already contains a username, e.g. from an outer registration flow, skip collection -->
+    <decision-state id="DetermineIfUsernameCollectionIsRequired">
+        <if test="IsUsernameCollectionRequired.test(opensamlProfileRequestContext)"
+            then="CollectUsernameView" 
+            else="PasswordlessLoginProceed" />        
+    </decision-state>
+       
+    <view-state id="CollectUsernameView" view="webauthn/webauthn-authn-username">
+        <on-render>
+            <evaluate expression="environment" result="viewScope.environment" />
+            <evaluate expression="opensamlProfileRequestContext" result="viewScope.profileRequestContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.authn.context.AuthenticationContext))" result="viewScope.authenticationContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.authn.context.AuthenticationContext)).getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnAuthenticationContext))" result="viewScope.webauthnContext" />
+            <evaluate expression="authenticationContext.getSubcontext(T(net.shibboleth.idp.ui.context.RelyingPartyUIContext))" result="viewScope.rpUIContext" />
+            <evaluate expression="authenticationContext.getSubcontext(T(net.shibboleth.idp.authn.context.AuthenticationErrorContext))" result="viewScope.authenticationErrorContext" />
+            <evaluate expression="authenticationContext.getSubcontext(T(net.shibboleth.idp.authn.context.AuthenticationWarningContext))" result="viewScope.authenticationWarningContext" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPDigester')" result="requestScope.cspDigester" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPNonce')" result="requestScope.cspNonce" />   
+            <evaluate expression="T(net.shibboleth.shared.codec.HTMLEncoder)" result="viewScope.encoder" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeRequest()" result="viewScope.request" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeResponse()" result="viewScope.response" />
+        </on-render>
+       <transition on="proceed" to="PasswordlessLoginExtractUsername" />       
+       <on-exit>
+            <evaluate expression="opensamlProfileRequestContext.addSubcontext(new net.shibboleth.idp.consent.context.ConsentManagementContext(), true).setRevokeConsent(requestParameters._shib_idp_revokeConsent == 'true')" />
+        </on-exit>       
+    </view-state>
+    
+    <action-state id="PasswordlessLoginExtractUsername">
+        <evaluate expression="ExtractUsernameFromForm"/>
+        <evaluate expression="InitializeSubjectCanonicalizationContext"/>
+        <evaluate expression="PopulateSubjectCanonicalizationContext" />
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="CallSubjectCanonicalization" />    
+    </action-state> 
+    
+    <!-- Call the c14n subflow here so we can c14n the username input by the user to lookup the correct credentials -->
+    <subflow-state id="CallSubjectCanonicalization" subflow="c14n">
+        <input name="calledAsSubflow" value="true" />
+        <transition on="proceed" to="UpdateUsernameFromC14nContext" />
+
+        <transition on="SubjectCanonicalizationError" to="ReselectFlow" />
+    </subflow-state>
+    
+    <action-state id="UpdateUsernameFromC14nContext">
+        <evaluate expression="UpdateUsernameInContextWithC14nPrincipal"/>
+        
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="PasswordlessLoginProceed" />       
+    </action-state>
+    
+    <action-state id="PasswordlessLoginProceed">        
+        <evaluate expression="LookupRegisteredCredentials"/>
+        <evaluate expression="AddUserVerificationRequired"/>
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="GenerateAuthenticationCeremonyOptions" />    
+    </action-state>
+    
+    <!-- 
+        Usernameless login: If Usernameless: require ResidentKey, UV, UP, and provide no previous credentials.
+     -->   
+    <action-state id="UsernamelessLogin">
+        <evaluate expression="PopulateWebAuthnAuthenticationContextUsernameless"/>
+        <evaluate expression="AddUserVerificationRequired"/>
+        <evaluate expression="EnsureAllowedCredentialsIsEmpty"/>
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="GenerateAuthenticationCeremonyOptions" />    
+    </action-state>
+    
+    <!-- 
+        Second Factor login: If we are running after a first factor, perform 2FA only. Needs existing username.
+     -->
+    <action-state id="SecondFactorLogin">
+        <evaluate expression="PopulateWebAuthnAuthenticationContextFor2FA"/>
+        <evaluate expression="LookupRegisteredCredentials"/>
+        <evaluate expression="AddUserVerificationNotRequired"/>
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="GenerateAuthenticationCeremonyOptions" />    
+    </action-state>
+    
+    <!-- 
+        Now the authentication options have been set, add them to the WebAuthn request options for the browser API.
+     -->
+    <action-state id="GenerateAuthenticationCeremonyOptions">
+        <evaluate expression="GenerateServerChallenge"/>
+        <evaluate expression="CreatePublicKeyCredentialRequestOptions"/>
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="DisplayWebAuthnView" />    
+    </action-state>
+    
+    
+    <view-state id="DisplayWebAuthnView" view="webauthn/webauthn-authn">
+        <on-render>
+            <evaluate expression="environment" result="viewScope.environment" />
+            <evaluate expression="opensamlProfileRequestContext" result="viewScope.profileRequestContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.authn.context.AuthenticationContext))" result="viewScope.authenticationContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.authn.context.AuthenticationContext)).getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnAuthenticationContext))" result="viewScope.webauthnContext" />
+            <evaluate expression="authenticationContext.getSubcontext(T(net.shibboleth.idp.ui.context.RelyingPartyUIContext))" result="viewScope.rpUIContext" />
+            <evaluate expression="authenticationContext.getSubcontext(T(net.shibboleth.idp.authn.context.AuthenticationErrorContext))" result="viewScope.authenticationErrorContext" />
+            <evaluate expression="authenticationContext.getSubcontext(T(net.shibboleth.idp.authn.context.AuthenticationWarningContext))" result="viewScope.authenticationWarningContext" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnErrorFunction')" result="viewScope.errorMessageFunction" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPDigester')" result="requestScope.cspDigester" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPNonce')" result="requestScope.cspNonce" />   
+            <evaluate expression="T(net.shibboleth.shared.codec.HTMLEncoder)" result="viewScope.encoder" />
+            <evaluate expression="T(net.shibboleth.idp.plugin.authn.webauthn.impl.WebAuthnEncoder)" result="viewScope.webAuthnEncoder"/>
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeRequest()" result="viewScope.request" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeResponse()" result="viewScope.response" />
+        </on-render>
+       <transition on="proceed" to="ValidatePublicKeyCredential" />
+       
+    </view-state>
+     
+    <action-state id="ValidatePublicKeyCredential">
+        <evaluate expression="ExtractPublicKeyCredentialAssertionFromFormRequest"/>
+        <!-- lookup credentials here so we can exit the process before validation if no registered credentials exist and
+        the authentication plugin has been configured to trigger a custom event. Useful for the usernameless flow. -->
+        <evaluate expression="LookupRegisteredCredentialsFromUserHandle"/>
+        <evaluate expression="CheckCredentialPolicy"/>
+        <evaluate expression="ValidateWebAuthnAssertion"/>
+        <evaluate expression="'proceed'" />
+        
+        <transition on="proceed" to="proceed" />
+        <!-- Import here we backtrack to a suitable action. For example, regenerate the challenge and options but
+        we do not need a new username input etc. -->
+        <transition on="CredentialPolicyRejection" to="GenerateAuthenticationCeremonyOptions"/> 
+        <!-- The default invalid credentials transition would be InvalidCredentials, configuring this event instead allows control to be returned to the view -->  
+        <transition on="InvalidWebAuthnCredential" to="GenerateAuthenticationCeremonyOptions"/>           
+    </action-state>
+    
+    <bean-import resource="webauthn-beans.xml" />
+    <bean-import resource="webauthn-abstract-beans.xml" />
+	
+</flow>

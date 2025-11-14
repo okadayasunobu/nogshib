@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util" xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:c="http://www.springframework.org/schema/c" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+    default-init-method="initialize" default-destroy-method="destroy">
+
+    <bean id="shibboleth.AdminProfileId" class="java.lang.String"
+        c:_0="http://shibboleth.net/ns/profiles/admin/webauthn/manage-credentials" />
+
+    <!-- Flow Functions -->
+    
+    <bean id="shibboleth.ChildLookup.WebAuthnManagementContext"
+        class="org.opensaml.messaging.context.navigate.ChildContextLookup"
+        c:type="#{ T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnManagementContext) }" />
+   
+    <bean id="shibboleth.ChildLookup.WebAuthnAdminInfoContext" parent="shibboleth.Functions.Compose">
+        <constructor-arg name="g">
+            <bean class="org.opensaml.messaging.context.navigate.ChildContextLookup"
+            c:type="#{ T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationInformationContext) }" />
+        </constructor-arg>
+        <constructor-arg name="f" ref="shibboleth.ChildLookup.WebAuthnManagementContext"/>
+    </bean>
+    
+    <bean id="shibboleth.ChildLookup.WebAuthnAdminErrorContext" parent="shibboleth.Functions.Compose">
+        <constructor-arg name="g">
+            <bean class="org.opensaml.messaging.context.navigate.ChildContextLookup"
+            c:type="#{ T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationErrorContext) }" />
+        </constructor-arg>
+        <constructor-arg name="f" ref="shibboleth.ChildLookup.WebAuthnManagementContext"/>
+    </bean>
+
+    <!-- Abstract parent beans -->
+
+    <bean id="AbstractWebAuthnManagementAction" scope="prototype" abstract="true"
+        p:webAuthnClient="#{getObject('shibboleth.authn.WebAuthn.WebAuthnAuthenticationClientFactory') ?: getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnAuthenticationClientFactory')}"
+        p:credentialRepository="#{getObject('shibboleth.authn.WebAuthn.CredentialRepository') ?: getObject('shibboleth.authn.WebAuthn.DefaultCredentialRepository')}"
+        p:fidoMetadataService="#{'false'.equals('%{idp.authn.webauthn.metadata.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory')}"/>
+
+    <!-- Flow beans -->
+
+    <bean id="PopulateWebAuthnManagementContext" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.PopulateWebAuthnManagementContext">
+        <property name="principalNameLookupStrategy">
+            <bean id="principalNameFromAuthnResult" scope="prototype"
+                class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.UsernameLookupFromSubjectContext" />
+        </property>
+    </bean>
+    
+    <bean id="ExtractUsernameSearchFromFormRequest" parent="AbstractWebAuthnManagementAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ExtractUsernameSearchFromFormRequest"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier" />
+        
+    <bean id="InitializeSubjectCanonicalizationContext" parent="AbstractWebAuthnBaseAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.InitializeAdminSubjectCanonicalizationContext" scope="prototype"
+         p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnManagementContext"/>
+    
+    <bean id="PopulateSubjectCanonicalizationContext" 
+        class="net.shibboleth.idp.authn.impl.PopulateSubjectCanonicalizationContext" scope="prototype"
+        p:availableFlows-ref="%{idp.authn.webauthn.registration.c14n.postUsernameFlows:shibboleth.PostLoginSubjectCanonicalizationFlows}" />   
+    
+    <bean id="UpdateAdminSearchUsernameWithC14nPrincipal" parent="AbstractWebAuthnBaseAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.UpdateAdminContextWithC14nPrincipal"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnManagementContext"/>           
+    
+    <bean id="LookupCredentialsForUser" parent="AbstractWebAuthnBaseAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.LookupCredentialsForUser"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnManagementContext" />
+    
+    <bean id="LabelCredentialRecords" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.LabelCredentialRecords"
+        p:labeller="#{getObject('%{idp.authn.webauthn.labeller:shibboleth.authn.WebAuthn.ChainingCredentialLabeller}')}">
+        <property name="credentialsLookupStrategy">
+            <bean id="SearchedUserCredentialLookupStrategy" class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.AdminSearchCredentialsLookupFunction"/>
+        </property>
+    </bean>
+        
+    <bean id="ExtractKeyRemovalInformationFromFormRequest" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ExtractKeyInformationFromFormRequest"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier">
+        <property name="contextSettingConsumer">
+            <bean class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ManagementContextCredentialRemovalConsumer"/>
+        </property>
+    </bean>
+        
+    <bean id="DeletePublicKeyCredential" parent="AbstractWebAuthnManagementAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.AdminDeletePublicKeyCredential" 
+        p:populateAuditContextAction="#{%{idp.authn.webauthn.admin.management.audit.enabled:false} ? getObject('PostAdminFunctionPopulateAuditContext') : null}"
+        p:writeAuditLogAction="#{%{idp.authn.webauthn.admin.management.audit.enabled:false} ? getObject('WriteAdminAuditLog') : null}"
+        p:auditContextCreationStrategy-ref="AdminAuditContextLookup" />
+        
+
+    <!-- Default functions to produce messages for the management view. -->
+    <bean id="DefaultAdminInfoMessageFunction" class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.RegistrationInfoMessageLookupFunction" lazy-init="true"
+        p:genericMessageID="%{idp.authn.webauthn.admin.management.genericMessageID:}" scope="prototype" p:webauthnInfoContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAdminInfoContext"/>
+
+    <bean id="DefaultAdminErrorMessageFunction" class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.RegistrationErrorMessageLookupFunction" lazy-init="true"
+        p:genericMessageID="%{idp.authn.webauthn.admin.management.genericMessageID:}" scope="prototype" p:webauthnErrorContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAdminErrorContext"/>
+        
+    <alias alias="AdminInfoMessageFunction" name="%{idp.authn.webauthn.admin.management.infoMessageFunction:DefaultAdminInfoMessageFunction}" />       
+    <alias alias="AdminErrorMessageFunction" name="%{idp.authn.webauthn.admin.management.errorMessageFunction:DefaultAdminErrorMessageFunction}" />
+    
+    <!--  Audit logging beans -->    
+    
+    <util:map id="shibboleth.authn.WebAuthn.admin.AuditFormattingMap">
+        <entry key="#{'%{idp.authn.webauthn.admin.management.audit.category:Shibboleth-Audit.WebAuthnManagment}'.trim()}"
+            value="#{'%{idp.authn.webauthn.admin.management.audit.format:%a|%T|%u|%WebAuthnAdminAO|%WebAuthnAdminAction|%WebAuthnAdminCR|%WebAuthnAdminAU|%UA}'.trim()}" />
+    </util:map>
+    
+    <bean id="PostAdminFunctionPopulateAuditContext" parent="shibboleth.admin.AbstractPopulateAuditContext"
+        p:fieldExtractors="#{getObject('shibboleth.authn.WebAuthn.admin.management.audit.AuditExtractors') ?: getObject('shibboleth.authn.WebAuthn.admin.management.DefaultAuditExtractors')}"
+        p:clearAuditContext="true"/>
+        
+     <bean id="shibboleth.authn.WebAuthn.admin.management.DefaultAuditExtractors" parent="shibboleth.authn.WebAuthn.admin.DefaultAuditExtractors" 
+        lazy-init="true" class="org.springframework.beans.factory.config.MapFactoryBean">
+        <property name="sourceMap">
+             <map merge="true">  
+                 <entry>
+                    <key>
+                        <util:constant
+                            static-field="net.shibboleth.idp.plugin.authn.webauthn.audit.WebAuthnAuditFields.ADMIN_AFFECTED_USER" />
+                    </key>
+                    <bean class="net.shibboleth.idp.plugin.authn.webauthn.audit.impl.WebAuthnSearchUserAuditExtractor"
+                        c:_0-ref="shibboleth.ChildLookup.WebAuthnManagementContext" />
+                </entry>
+                <entry>
+                    <key>
+                        <util:constant
+                            static-field="net.shibboleth.idp.plugin.authn.webauthn.audit.WebAuthnAuditFields.CRED_REMOVED" />
+                    </key>
+                    <bean class="net.shibboleth.idp.plugin.authn.webauthn.audit.impl.WebAuthnCredentialToRemoveAuditExtractor"
+                        c:_0-ref="shibboleth.ChildLookup.WebAuthnManagementContext" />
+                </entry>
+             </map>
+        </property>
+    </bean>
+
+    <import resource="conditional:%{idp.home}/conf/authn/webauthn-management-config.xml" />
+
+</beans>

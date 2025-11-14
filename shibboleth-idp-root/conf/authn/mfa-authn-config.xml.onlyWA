@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+       default-init-method="initialize"
+       default-destroy-method="destroy">
+
+		<util:map id="shibboleth.authn.MFA.TransitionMap">
+        	<entry key="">
+            	<bean parent="shibboleth.authn.MFA.Transition" p:nextFlow="authn/WebAuthn" />
+			</entry> 
+
+         	<entry key="authn/WebAuthn">
+            	<bean parent="shibboleth.authn.MFA.Transition">
+                	<property name="nextFlowStrategyMap">
+                    	<map>          
+                        	<entry key="NoRegisteredWebAuthnCredentials" value="authn/Password" />
+                        	<entry key="NoCredentialsRegisteredForUserHandle" value="authn/Password" />
+                    	</map>
+                	</property>
+            	</bean>
+        	</entry> 
+    	</util:map>	
+</beans>

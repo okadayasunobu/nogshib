@@ -1,0 +1,13 @@
+#Files Copied 2025-09-22T08:07:07.569054621Z
+#Mon Sep 22 17:07:07 JST 2025
+idp.plugin.file.1=dist/plugin-webapp/WEB-INF/lib/yubico-util-2.5.4.jar
+idp.plugin.version=1.0.0
+idp.plugin.file.2=dist/plugin-webapp/WEB-INF/lib/webauthn-server-attestation-2.5.4.jar
+idp.plugin.file.3=dist/plugin-webapp/WEB-INF/lib/idp-plugin-webauthn-impl-1.0.0.jar
+idp.plugin.relativePaths=true
+idp.plugin.file.4=dist/plugin-webapp/WEB-INF/lib/jackson-datatype-jdk8-2.15.2.jar
+idp.plugin.file.5=dist/plugin-webapp/WEB-INF/lib/webauthn-server-core-2.5.4.jar
+idp.plugin.file.6=dist/plugin-webapp/WEB-INF/lib/jackson-dataformat-cbor-2.15.2.jar
+idp.plugin.file.7=dist/plugin-webapp/WEB-INF/lib/cbor-4.5.2.jar
+idp.plugin.file.8=dist/plugin-webapp/WEB-INF/lib/numbers-1.8.2.jar
+idp.plugin.file.9=dist/plugin-webapp/WEB-INF/lib/idp-plugin-webauthn-api-1.0.0.jar

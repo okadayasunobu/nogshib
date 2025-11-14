@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Created-By: Maven JAR Plugin 3.2.2
+Build-Jdk-Spec: 17
+Automatic-Module-Name: net.shibboleth.idp.plugin.authn.webauthn.impl
+Sealed: true
+
+Name: net/shibboleth/idp/plugin/authn/webauthn
+Implementation-Vendor: shibboleth.net
+Implementation-Version: 1.0.0
+Implementation-Title: idp-plugin-webauthn-impl
+

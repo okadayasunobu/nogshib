@@ -1,0 +1,5 @@
+#Files Copied 2025-09-22T08:06:01.385944683Z
+#Mon Sep 22 17:06:01 JST 2025
+idp.plugin.file.1=dist/plugin-webapp/WEB-INF/lib/idp-plugin-metadatagen-impl-2.0.0.jar
+idp.plugin.version=2.0.0
+idp.plugin.relativePaths=true

@@ -1,0 +1,139 @@
+<flow xmlns="http://www.springframework.org/schema/webflow" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/webflow http://www.springframework.org/schema/webflow/spring-webflow.xsd"
+    parent="admin.abstract">
+    
+    
+    <!-- Start action. -->
+        
+    <action-state id="InitializeProfileRequestContext">
+        <evaluate expression="InitializeProfileRequestContext" />
+        <evaluate expression="FlowStartPopulateAuditContext" />
+        <evaluate expression="'proceed'" />        
+
+        <!-- Branch to determine if authentication is required. -->
+        <transition on="proceed" to="DoAdminPreamble" />
+    </action-state>
+
+    <!-- Resume actual flow processing. -->
+
+    <action-state id="DoProfileWork">
+        <evaluate expression="CheckAccess" />
+        <evaluate expression="'proceed'" />
+        
+        <transition on="proceed" to="PopulateManagementContext" />
+    </action-state>   
+    
+     <action-state id="PopulateManagementContext">
+       <evaluate expression="PopulateWebAuthnManagementContext"/> 
+      
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="UsernameSearchView" />    
+    </action-state>
+    
+     <view-state id="UsernameSearchView" view="webauthn/webauthn-management-search">
+        <on-render>
+            <evaluate expression="environment" result="viewScope.environment" />
+            <evaluate expression="opensamlProfileRequestContext" result="viewScope.profileRequestContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnManagementContext))" result="viewScope.webAuthnManContext" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPDigester')" result="requestScope.cspDigester" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPNonce')" result="requestScope.cspNonce" />   
+            <evaluate expression="T(net.shibboleth.shared.codec.HTMLEncoder)" result="viewScope.encoder" />
+            <evaluate expression="T(net.shibboleth.idp.plugin.authn.webauthn.impl.WebAuthnEncoder)" result="viewScope.webAuthnEncoder"/>
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeRequest()" result="viewScope.request" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeResponse()" result="viewScope.response" />
+        </on-render>
+        
+       <transition on="proceed" to="ExtractSearchFields" />
+       <transition on="finish" to="ManagementComplete" />       
+    </view-state>
+    
+    <action-state id="ExtractSearchFields">       
+        <evaluate expression="ExtractUsernameSearchFromFormRequest"/>
+        <evaluate expression="InitializeSubjectCanonicalizationContext"/>
+        <evaluate expression="PopulateSubjectCanonicalizationContext" />
+      
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="CallSubjectCanonicalization" />    
+    </action-state> 
+    
+     <!-- Call the c14n subflow here so we can c14n the search username to lookup the correct credentials -->
+    <subflow-state id="CallSubjectCanonicalization" subflow="c14n">
+        <input name="calledAsSubflow" value="true" />
+        <transition on="proceed" to="UpdateSearchName" />
+
+        <transition on="SubjectCanonicalizationError" to="InvalidSubjectCanonicalizationContext" />
+    </subflow-state>
+    
+    <action-state id="UpdateSearchName">
+        <evaluate expression="UpdateAdminSearchUsernameWithC14nPrincipal"/>
+        
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="LookupCredentials" />  
+    </action-state>
+    
+    <action-state id="LookupCredentials">       
+       <evaluate expression="LookupCredentialsForUser"/>  
+       <evaluate expression="LabelCredentialRecords"/> 
+      
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="ManagementView" />    
+    </action-state>   
+    
+    <view-state id="ManagementView" view="webauthn/webauthn-management">
+        <on-render>
+            <evaluate expression="environment" result="viewScope.environment" />
+            <evaluate expression="opensamlProfileRequestContext" result="viewScope.profileRequestContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnManagementContext))" result="viewScope.webAuthnManContext" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPDigester')" result="requestScope.cspDigester" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPNonce')" result="requestScope.cspNonce" />   
+            <evaluate expression="T(net.shibboleth.shared.codec.HTMLEncoder)" result="viewScope.encoder" />
+            <evaluate expression="T(net.shibboleth.idp.plugin.authn.webauthn.impl.WebAuthnEncoder)" result="viewScope.webAuthnEncoder"/>
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeRequest()" result="viewScope.request" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeResponse()" result="viewScope.response" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('AdminInfoMessageFunction')" result="viewScope.adminInfoMessageFunction" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('AdminErrorMessageFunction')" result="viewScope.adminErrorMessageFunction" />
+        </on-render>
+        
+       <transition on="again" to="UsernameSearchView" />
+       <transition on="finish" to="ManagementComplete" />
+       <transition on="deleteKey" to="DeleteKey" />
+       
+    </view-state>   
+    
+    <action-state id="DeleteKey">
+        <evaluate expression="ExtractKeyRemovalInformationFromFormRequest"/>
+        <evaluate expression="DeletePublicKeyCredential"/>
+         <evaluate expression="PopulateClientStorageSaveContext" />
+        
+        <evaluate expression="'proceed'" />
+        <transition on="proceed" to="WebAuthnClientStorageSave">
+             <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnManagementContext)).ensureSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationInformationContext)).addClassifiedMessage('KeyRemoved')"/>
+        </transition>
+        <transition on="NoSaveNeeded" to="LookupCredentials" />
+    </action-state>  
+    
+    <subflow-state id="WebAuthnClientStorageSave" subflow="client-storage/write">
+        <input name="calledAsSubflow" value="true" />
+        <transition on="proceed" to="LookupCredentials"/>
+    </subflow-state>
+
+
+    <end-state id="ManagementComplete" view="webauthn/webauthn-end">
+         <on-entry>
+            <evaluate expression="environment" result="requestScope.environment" />
+            <evaluate expression="WriteAuditLog" />
+            <evaluate expression="opensamlProfileRequestContext" result="requestScope.profileRequestContext" />
+            <evaluate expression="opensamlProfileRequestContext.getSubcontext(T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext))" result="requestScope.webauthnRegContext" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPDigester')" result="requestScope.cspDigester" />
+            <evaluate expression="flowRequestContext.getActiveFlow().getApplicationContext().getBean('WebAuthnCSPNonce')" result="requestScope.cspNonce" />   
+            <evaluate expression="T(net.shibboleth.shared.codec.HTMLEncoder)" result="requestScope.encoder" />
+            <evaluate expression="T(net.shibboleth.idp.plugin.authn.webauthn.impl.WebAuthnEncoder)" result="requestScope.webAuthnEncoder"/>
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeRequest()" result="requestScope.request" />
+            <evaluate expression="flowRequestContext.getExternalContext().getNativeResponse()" result="requestScope.response" />
+        </on-entry>
+    </end-state>
+    
+    <bean-import resource="webauthn-management-beans.xml" />
+    <bean-import resource="../../authn/WebAuthn/webauthn-abstract-beans.xml" />
+	
+</flow>

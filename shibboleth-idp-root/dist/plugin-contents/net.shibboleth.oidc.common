@@ -1,0 +1,21 @@
+#Files Copied 2025-09-22T08:06:26.412356192Z
+#Mon Sep 22 17:06:26 JST 2025
+idp.plugin.file.11=dist/plugin-webapp/WEB-INF/lib/oidc-common-crypto-impl-3.3.0.jar
+idp.plugin.file.12=dist/plugin-webapp/WEB-INF/lib/oidc-common-attribute-api-3.3.0.jar
+idp.plugin.file.13=dist/plugin-webapp/WEB-INF/lib/oauth2-oidc-sdk-10.15.jar
+idp.plugin.file.14=dist/plugin-webapp/WEB-INF/lib/oidc-common-plugin-3.3.0.jar
+idp.plugin.file.15=dist/plugin-webapp/WEB-INF/lib/lang-tag-1.7.jar
+idp.plugin.file.16=dist/plugin-webapp/WEB-INF/lib/oidc-common-profile-api-3.3.0.jar
+idp.plugin.file.17=dist/plugin-webapp/WEB-INF/lib/accessors-smart-1.2.jar
+idp.plugin.file.1=dist/plugin-webapp/WEB-INF/lib/nimbus-jose-jwt-9.40.jar
+idp.plugin.version=3.3.0
+idp.plugin.file.2=dist/plugin-webapp/WEB-INF/lib/oidc-common-crypto-api-3.3.0.jar
+idp.plugin.file.3=dist/plugin-webapp/WEB-INF/lib/json-smart-2.5.2.jar
+idp.plugin.relativePaths=true
+idp.plugin.file.4=dist/plugin-webapp/WEB-INF/lib/oidc-common-metadata-impl-3.3.0.jar
+idp.plugin.file.5=dist/plugin-webapp/WEB-INF/lib/oidc-common-saml-api-3.3.0.jar
+idp.plugin.file.6=dist/plugin-webapp/WEB-INF/lib/oidc-common-profile-impl-3.3.0.jar
+idp.plugin.file.7=dist/plugin-webapp/WEB-INF/lib/oidc-common-metadata-api-3.3.0.jar
+idp.plugin.file.10=dist/plugin-webapp/WEB-INF/lib/oidc-common-attribute-impl-3.3.0.jar
+idp.plugin.file.8=dist/plugin-webapp/WEB-INF/lib/content-type-2.3.jar
+idp.plugin.file.9=dist/plugin-webapp/WEB-INF/lib/oidc-common-saml-impl-3.3.0.jar

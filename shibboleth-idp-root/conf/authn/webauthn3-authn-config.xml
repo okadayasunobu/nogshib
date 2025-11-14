@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:c="http://www.springframework.org/schema/c"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util  http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- WebAuthn3 認証フロー -->
+    <bean id="authn/WebAuthn3" parent="shibboleth.AuthenticationFlow"
+            <!-- flowId を既存の WebAuthn と同じにすると、同じ WebFlow 定義を使える -->
+            p:flowId="authn/WebAuthn"
+            p:order="%{idp.authn.webauthn3.order:1001}"
+            p:nonBrowserSupported="%{idp.authn.webauthn3.nonBrowserSupported:false}"
+            p:passiveAuthenticationSupported="%{idp.authn.webauthn3.passiveAuthenticationSupported:true}"
+            p:forcedAuthenticationSupported="%{idp.authn.webauthn3.forcedAuthenticationSupported:true}"
+            p:proxyRestrictionsEnforced="%{idp.authn.webauthn3.proxyRestrictionsEnforced:%{idp.authn.enforceProxyRestrictions:true}}"
+            p:proxyScopingEnforced="%{idp.authn.webauthn3.proxyScopingEnforced:false}"
+            p:discoveryRequired="%{idp.authn.webauthn3.discoveryRequired:false}"
+            p:lifetime="%{idp.authn.webauthn3.lifetime:%{idp.authn.defaultLifetime:PT1H}}"
+            p:inactivityTimeout="%{idp.authn.webauthn3.inactivityTimeout:%{idp.authn.defaultTimeout:PT30M}}"
+            p:reuseCondition-ref="#{'%{idp.authn.webauthn3.reuseCondition:shibboleth.Conditions.TRUE}'.trim()}"
+            p:activationCondition-ref="#{'%{idp.authn.webauthn3.activationCondition:shibboleth.Conditions.TRUE}'.trim()}"
+            p:subjectDecorator="#{getObject('%{idp.authn.webauthn3.subjectDecorator:}'.trim())}">
+
+        <property name="supportedPrincipalsByString">
+            <bean parent="shibboleth.CommaDelimStringArray"
+                c:_0="#{'%{idp.authn.webauthn3.supportedPrincipals:}'.trim()}" />
+        </property>
+    </bean>
+
+</beans>
+

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util" xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:c="http://www.springframework.org/schema/c" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+    default-init-method="initialize" default-destroy-method="destroy">
+
+    <!-- Functions -->
+    <bean id="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"
+        parent="shibboleth.Functions.Compose" c:f-ref="shibboleth.ChildLookup.AuthenticationContext"
+        c:g-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContext" />
+
+    <!-- Abstract parent beans -->
+    
+    <bean id="AbstractWebAuthnAuthenticationAction" scope="prototype" abstract="true"
+        p:webAuthnClient="#{getObject('shibboleth.authn.WebAuthn.WebAuthnAuthenticationClientFactory') ?: getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnAuthenticationClientFactory')}"/>
+        
+    <bean id="shibboleth.authn.WebAuthn.AbstractCredentialPolicyRule" scope="prototype" abstract="true"
+        p:fidoMetadataService="#{'false'.equals('%{idp.authn.webauthn.metadata.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory')}"/>
+
+    <bean id="shibboleth.authn.WebAuthn.FunctionalCredentialPolicyRule" abstract="true" scope="prototype"
+        class=" net.shibboleth.idp.plugin.authn.webauthn.policy.impl.FunctionalCredentialPolicyRule" 
+        p:fidoMetadataService="#{'false'.equals('%{idp.authn.webauthn.metadata.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory')}"/>
+        
+    <!-- Flow beans -->
+    
+    <bean id="PopulateWebAuthnAuthenticationContextPasswordless" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.PopulateWebAuthnAuthenticationContext"
+        p:usernameRequired="false">
+        <property name="usernameLookupStrategy">
+            <bean id="usernameFromAuthnResult" scope="prototype"
+                class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.UsernameLookupFromRegistrationContext"/>
+        </property>
+        <property name="contextUpdateConsumer">
+            <bean id="setPasswordlessConsumer" scope="prototype"
+                class="net.shibboleth.idp.plugin.authn.webauthn.impl.SetPaswordlessUsageToContextConsumer"/>
+        </property>
+    </bean>
+    
+    <bean id="PopulateWebAuthnAuthenticationContextUsernameless" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.PopulateWebAuthnAuthenticationContext"
+        p:usernameRequired="false">
+        <property name="contextUpdateConsumer">
+            <bean id="setUsernamelessConsumer" scope="prototype"
+                class="net.shibboleth.idp.plugin.authn.webauthn.impl.SetUsernamelessUsageToContextConsumer"/>
+        </property>
+    </bean>   
+    
+    <bean id="PopulateWebAuthnAuthenticationContextFor2FA" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.PopulateWebAuthnAuthenticationContext"
+        p:usernameRequired="true"
+        p:usernameLookupStrategy="#{getObject('%{idp.authn.webauthn.2fa.username.strategy:shibboleth.authn.WebAuthn.CanonicalUsernameLookupStrategy}')}">        
+        <property name="contextUpdateConsumer">
+            <bean id="setUsernamelessConsumer" scope="prototype"
+                class="net.shibboleth.idp.plugin.authn.webauthn.impl.SetSecondFactorUsageToContextConsumer"/>
+        </property>
+    </bean>
+    
+    <bean id="shibboleth.authn.WebAuthn.CanonicalUsernameLookupStrategy" lazy-init="true" scope="singleton"
+        class="net.shibboleth.idp.session.context.navigate.CanonicalUsernameLookupStrategy" />
+    
+    <bean id="IsUsernameCollectionRequired" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.logic.IsUsernameCollectionRequired"/>
+
+    <bean id="IsSecondFactor" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.logic.IsSecondFactor"
+        p:usernameLookupStrategy="#{getObject('%{idp.authn.webauthn.2fa.username.strategy:shibboleth.authn.WebAuthn.CanonicalUsernameLookupStrategy}')}"
+        p:secondFactorOverride="#{getObject('shibboleth.authn.WebAuthn.SecondFactorOverride') != null ? 
+            getObject('shibboleth.authn.WebAuthn.SecondFactorOverride') : %{idp.authn.webauthn.2fa.forceSecondFactorFlow:false}}"
+        p:allowedPreviousFactors="%{idp.authn.webauthn.2fa.allowedPreviousFactors:authn/Password}"
+        p:enabled="%{idp.authn.webauthn.2fa.enabled:false}"/>
+    
+    <bean id="IsUsernamelessFlow" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.logic.UsernamelessFlowEnabled"
+        p:enabled="%{idp.authn.webauthn.usernameless.enabled:false}"/>
+
+    <bean id="IsDiscoverableCredentialRequired" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.logic.IsDiscoverableCredentialRequired" />
+
+    <bean id="shibboleth.ChildLookup.WebAuthnAuthenticationContext"
+        class="org.opensaml.messaging.context.navigate.ChildContextLookup"
+        c:type="#{ T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnAuthenticationContext) }" />
+        
+    <bean id="ExtractUsernameFromForm" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.ExtractUsernameFromForm"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"
+        p:uppercase="%{idp.authn.webauthn.passwordless.username.uppercase:false}"
+        p:lowercase="%{idp.authn.webauthn.passwordless.username.lowercase:false}"
+        p:trim="%{idp.authn.webauthn.passwordless.username.trim:false}"
+        p:transforms="#{getObject('shibboleth.authn.WebAuthn.passwordless.UsernameTransformations')}"/>
+        
+    <bean id="InitializeSubjectCanonicalizationContext" parent="AbstractWebAuthnBaseAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.InitializeSubjectCanonicalizationContext" scope="prototype"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"/>
+        
+    <bean id="PopulateSubjectCanonicalizationContext" 
+        class="net.shibboleth.idp.authn.impl.PopulateSubjectCanonicalizationContext" scope="prototype"
+        p:availableFlows-ref="%{idp.authn.webauthn.passwordless.c14n.postUsernameFlows:shibboleth.PostLoginSubjectCanonicalizationFlows}" />
+        
+    <bean id="UpdateUsernameInContextWithC14nPrincipal" parent="AbstractWebAuthnBaseAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.UpdateWebAuthnContextWithC14nPrincipal"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"/>
+    
+    <bean id="EnsureAllowedCredentialsIsEmpty" parent="AbstractWebAuthnAuthenticationAction" scope="prototype"
+    class="net.shibboleth.idp.plugin.authn.webauthn.impl.EnsureAllowedCredentialsIsEmpty"/>
+
+    <bean id="AddUserVerificationRequired" parent="AbstractWebAuthnBaseAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.AddUserVerificationRequirement" scope="prototype"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"
+        p:userVerificationRequirement="required" />
+
+    <bean id="AddUserVerificationNotRequired" parent="AbstractWebAuthnBaseAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.AddUserVerificationRequirement" scope="prototype"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"
+        p:userVerificationRequirement="discouraged" />
+
+    <bean id="LookupRegisteredCredentials" scope="prototype" parent="AbstractWebAuthnBaseAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.LookupRegisteredCredentials"
+        p:triggerEventOnNoCredentials="%{idp.authn.webauthn.passwordless.signalEventOnNoCredentials:false}"
+        p:noCredentialsEventId="%{idp.authn.webauthn.passwordless.noCredentialsEventId:NoRegisteredWebAuthnCredentials}"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext" />
+
+    <bean id="GenerateServerChallenge" scope="prototype" parent="AbstractWebAuthnBaseAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.GenerateServerChallenge"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext" 
+        p:challengeGeneratorStrategy="#{getObject('shibboleth.authn.WebAuthn.ChallengeGeneratorStrategy')}"/>
+
+    <bean id="CreatePublicKeyCredentialRequestOptions" scope="prototype" parent="AbstractWebAuthnAuthenticationAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.CreatePublicKeyCredentialRequestOptions"/>
+
+    <bean id="ExtractPublicKeyCredentialAssertionFromFormRequest" scope="prototype" parent="AbstractWebAuthnAuthenticationAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.ExtractPublicKeyCredentialAssertionFromFormRequest"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier"
+        p:objectMapper-ref="shibboleth.authn.WebAuthn.JSONObjectMapper" />
+        
+    <bean id="LookupRegisteredCredentialsFromUserHandle" scope="prototype" parent="AbstractWebAuthnAuthenticationAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.LookupRegisteredCredentialsFromUserHandle"
+        p:credentialRepository="#{getObject('shibboleth.authn.WebAuthn.CredentialRepositoryy') ?: getObject('shibboleth.authn.WebAuthn.DefaultCredentialRepository')}"
+        p:triggerEventOnNoCredentials="%{idp.authn.webauthn.signalEventOnNoCredentialsRegisteredForUserHandle:false}"
+        p:noCredentialsEventId="%{idp.authn.webauthn.userHandleNoRegisteredCredentialsEventId:NoCredentialsRegisteredForUserHandle}"/>    
+
+    <bean id="CheckCredentialPolicy" parent="AbstractWebAuthnAuthenticationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.CheckCredentialPolicy"
+        p:credentialRepository="#{getObject('shibboleth.authn.WebAuthn.CredentialRepositoryy') ?: getObject('shibboleth.authn.WebAuthn.DefaultCredentialRepository')}"
+        p:credentialPolicy="#{getObject('%{idp.authn.webauthn.credential.policy:shibboleth.authn.WebAuthn.ChainedCredentialPolicy}')}"
+        p:activationCondition="%{idp.authn.webauthn.credential.policy.enabled:false}"/>
+
+    <bean id="shibboleth.authn.WebAuthn.ChainedCredentialPolicy" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.policy.impl.ChainingCredentialPolicyRule"
+        p:credentialPolicyChain="#{getObject('%{idp.authn.webauthn.credential.policy.chainedlist:shibboleth.authn.WebAuthn.ChainedCredentialPolicyList}')}"/>
+    
+    <bean id="ValidateWebAuthnAssertion" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.ValidateWebAuthnAssertion"
+        p:webAuthnClient="#{getObject('shibboleth.authn.WebAuthn.WebAuthnAuthenticationClientFactory') ?: getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnAuthenticationClientFactory')}" 
+        p:credentialRepository="#{getObject('shibboleth.authn.WebAuthn.CredentialRepository') ?: getObject('shibboleth.authn.WebAuthn.DefaultCredentialRepository')}"
+        p:updateSignatureCountPredicate="#{getObject('shibboleth.authn.WebAuthn.UpdateSignatureCountPredicate') ?: %{idp.authn.webauthn.updateSignatureCount:true}}"
+        p:populateAuditContextAction="#{%{idp.authn.webauthn.audit.enabled:%{idp.authn.audit.enabled:false}} ? getObject('shibboleth.authn.WebAuthn.PopulateAuditContext') : null}"
+        p:writeAuditLogAction="#{%{idp.authn.webauthn.audit.enabled:%{idp.authn.audit.enabled:false}} ? getObject('WriteAuthnAuditLog') : null}"
+        p:cleanupHook="#{getObject('shibboleth.authn.WebAuthn.RemoveAfterValidation') == true ? getObject('DefaultCleanupHook') : null}"        
+        p:classifiedMessages="#{getObject('shibboleth.authn.WebAuthn.ClassifiedMessageMap')}"/>
+        
+    <bean id="DefaultCleanupHook" class="net.shibboleth.idp.plugin.authn.webauthn.impl.ValidateWebAuthnAssertion.WebAuthnCleanupHook"/>    
+
+    <!-- Error beans -->
+    <alias alias="WebAuthnErrorFunction" name="%{idp.authn.webauthn.errorMessageFunction:DefaultWebAuthnErrorFunction}" />
+        
+    <bean id="DefaultWebAuthnErrorFunction" class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.WebAuthnErrorMessageLookupFunction" lazy-init="true"
+        p:genericMessageID="%{idp.authn.webauthn.genericMessageID:idp.webauthn.message}" />
+    
+    <!-- Audit logging beans. -->
+
+    <!-- Default audit format and extractors --> 
+    <util:map id="shibboleth.authn.AuditFormattingMap">
+        <entry key="#{'%{idp.authn.webauthn.audit.category:Shibboleth-Audit.WebAuthn}'.trim()}"
+            value="#{'%{idp.authn.webauthn.audit.format:%a|%T|%SP|%I|%s|%AF|%CV|%u|%WebAuthnUID|%WebAuthnUV|%WebAuthnFM|%tu|%AR|%UA}'.trim()}" />
+    </util:map>
+    
+    <bean id="shibboleth.authn.WebAuthn.PopulateAuditContext" parent="shibboleth.authn.AbstractPopulateAuditContext" lazy-init="true"
+        p:fieldExtractors="#{getObject('shibboleth.authn.WebAuthn.AuditExtractors') ?: getObject('shibboleth.authn.WebAuthn.DefaultAuditExtractors')}"
+        p:clearAuditContext="true" />
+        
+    <bean id="shibboleth.authn.WebAuthn.DefaultAuditExtractors" parent="shibboleth.authn.DefaultAuditExtractors" lazy-init="true"
+            class="org.springframework.beans.factory.config.MapFactoryBean">
+        <property name="sourceMap">
+             <map merge="true">
+               <entry>
+                    <key>
+                        <util:constant static-field="net.shibboleth.idp.profile.IdPAuditFields.USERNAME"/>
+                    </key>
+                    <bean class="net.shibboleth.idp.plugin.authn.webauthn.audit.impl.WebAuthnUsernameAuditExtractor" 
+                        c:_0-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"/>
+                </entry>
+                <entry>
+                    <key>
+                        <util:constant static-field="net.shibboleth.idp.plugin.authn.webauthn.audit.WebAuthnAuditFields.USERID"/>
+                    </key>
+                    <bean class="net.shibboleth.idp.plugin.authn.webauthn.audit.impl.WebAuthnUserIdAuditExtractor" 
+                        c:_0-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"/>
+                </entry>
+                <entry>
+                    <key>
+                        <util:constant static-field="net.shibboleth.idp.plugin.authn.webauthn.audit.WebAuthnAuditFields.UV"/>
+                    </key>
+                    <bean class="net.shibboleth.idp.plugin.authn.webauthn.audit.impl.WebAuthnUserVerificationAuditExtractor" 
+                        c:_0-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"/>
+                </entry>
+                <entry>
+                    <key>
+                        <util:constant static-field="net.shibboleth.idp.plugin.authn.webauthn.audit.WebAuthnAuditFields.FLOW_MODE"/>
+                    </key>
+                    <bean class="net.shibboleth.idp.plugin.authn.webauthn.audit.impl.WebAuthnFlowModeAuditExtractor" 
+                        c:_0-ref="shibboleth.ChildLookup.WebAuthnAuthenticationContextFromAuthenticationContext"/>
+                </entry>
+             </map>
+        </property>
+    </bean>
+    
+   <import resource="conditional:%{idp.home}/conf/authn/webauthn-config.xml" />
+
+</beans>

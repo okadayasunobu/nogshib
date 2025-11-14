@@ -1,0 +1,2 @@
+Summary for /opt/shibboleth-idp/dist/plugin-webapp/WEB-INF/lib/idp-plugin-webauthn-api-1.0.0.jar
+Decompiled with CFR 0.152

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util" xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:c="http://www.springframework.org/schema/c" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+    default-init-method="initialize" default-destroy-method="destroy" default-lazy-init="true">
+    
+    
+    <!-- 
+        If enabled, the default list to add credential policies used during authentication.     
+    -->
+    <util:list id="shibboleth.authn.WebAuthn.ChainedCredentialPolicyList">
+    
+        <bean id="SecondFactorOnlyCredentialPolicyRule" parent="shibboleth.authn.WebAuthn.AbstractCredentialPolicyRule"
+                class="net.shibboleth.idp.plugin.authn.webauthn.policy.impl.SecondFactorOnlyCredentialPolicyRule"
+                p:secondFactorOnlyAuthenticators="%{idp.authn.webauthn.authenticator.policy.secondFactorOnlyAuthenticators:null}"/>
+                
+    </util:list>
+    
+    <!-- Uncomment this map if you want control returned to the WebAuthn view if a credential fails to validate -->
+    <!--  
+    <util:map id="shibboleth.authn.WebAuthn.ClassifiedMessageMap">
+        <entry key="InvalidWebAuthnCredential">
+            <list>
+                <value>InvalidCredentials</value>
+            </list>
+        </entry>
+    </util:map>
+    -->
+
+</beans>

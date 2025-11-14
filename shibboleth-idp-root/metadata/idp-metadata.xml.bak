@@ -1,0 +1,107 @@
+<!--
+ This is example metadata only. Do *NOT* supply it as is without review,
+and do *NOT* provide it in real time to your partners.
+This metadata is not dynamic - it will not change as your configuration changes.
+On Demand Metadata Generation available from the metadatagen plugin.
+-->
+<md:EntityDescriptor entityID="https://nogshib-idp.cis.ibaraki.ac.jp/idp/shibboleth" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+    <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+        <md:Extensions>
+            <shibmd:Scope regexp="false">cis.ibaraki.ac.jp</shibmd:Scope>
+            <mdui:UIInfo>
+                <mdui:DisplayName xml:lang="en">A name for the IdP at nogshib-idp.cis.ibaraki.ac.jp</mdui:DisplayName>
+                <mdui:Description xml:lang="en">Enter a description for the IdP at nogshib-idp.cis.ibaraki.ac.jp</mdui:Description>
+                <mdui:Logo xml:lang="en" width="80" height="80">https://nogshib-idp.cis.ibaraki.ac.jp/path/to/logo.png</mdui:Logo>
+            </mdui:UIInfo>
+        </md:Extensions>
+        <md:KeyDescriptor use="signing">
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+MIIEYTCCAsmgAwIBAgIVAM9LEZprsNK+Qy1hS0t8oWW6wpgDMA0GCSqGSIb3DQEBCwUAMCgxJjAk
+BgNVBAMMHW5vZ3NoaWItaWRwLmNpcy5pYmFyYWtpLmFjLmpwMB4XDTI1MDYxOTA1NTQwMFoXDTQ1
+MDYxOTA1NTQwMFowKDEmMCQGA1UEAwwdbm9nc2hpYi1pZHAuY2lzLmliYXJha2kuYWMuanAwggGi
+MA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQDkf76oDHL2yym1BfuyA2//IlZsdzwllkXhgw2l
+Gb59KvcYe9PKElzcqSoXqWjW2hdh3ni4lJwZEuQO01ZE+/3mflIAg7FO2fzMHeUu/LllKP1eayCc
+e707qqZJV+unUEvT6Oi8QL0ocEj+8y5MRKM3F9EYZ52wlv/i4KSgeFn9O8KO0noF2sB6lcygTfqN
+ooUJy7LbTbRa++U2Qgfcg9X0m7J+CYK3tvfe8AORWmzeKBU8xyOzRS3bPhzHnibDSgHetfryF/z1
+w931XF18jZJXE9BaoLLi5b5//UfG/M8cZ0BEYMpi++7clTVhU4ZvV1DxU015ydqxkel2echryEfT
+/6uDIPOlgW3Zm+7v1gkfYHQXanweisuTxiBSMpdO7uMyXzwkpxrQ5mqhL8YTNg973Wsf3ZtGvfIO
+wFLgD7mGMZrhRBjTmVXWVUhDeg32NbYTDa0FYtx7pWJt1r2FlRPk/vn1Cd25Joox4ZgSOyN96i1z
+0fjp3mPnHmgdc9HvpVcCAwEAAaOBgTB/MB0GA1UdDgQWBBTBuvKafYnfy0VnGfdqHIIblvzw4zBe
+BgNVHREEVzBVgh1ub2dzaGliLWlkcC5jaXMuaWJhcmFraS5hYy5qcIY0aHR0cHM6Ly9ub2dzaGli
+LWlkcC5jaXMuaWJhcmFraS5hYy5qcC9pZHAvc2hpYmJvbGV0aDANBgkqhkiG9w0BAQsFAAOCAYEA
+0XQP8PgPTziVLSpomRmzdCBF7kjRZsz4Nwf666pASdd+boWJ7MW+1UPaN5l9v9H5j9wYUHJX0BvX
+Gc+cmDY1Ku7ynuqYPk53bIvB/5SKWTvvcbOfGUmxFPZTYwQFs4UVqR+JL3h4Bmv6sWcq85Atc9oF
+JOxOISg3rfVCK0KOctk6wO+t2WRNAeAUNTn4Z49TuA9zJbGeCto63HOHezGebRK9kxqc+PIc43Df
+7rlV1BssJ0MRzfftP9dkVbwhb00xbt16AgL0fwpFc+PZJ+RQBIsv6vFZemUDM1WPVg1VK+1/74Sm
+TPwZ67GER56GaEC6E9EI5afOu/M2PLxQ4S9B9BWi4ciEtzRx/m7WifBh2E+mAizgRKJDpT8Wdd3i
+lnq4NeZ0JbGJc5fOnNL3w92MqGRhD8MqpEqNazc2X11ru6rlwH4HZL2odOVBv7QUv1VLqGWMzli1
+bllVPkcO5xomwNU16H1eOJHfQDs7hblfkc7gYUA47QwtnCRL8uv8s3Bh
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+        <md:KeyDescriptor use="signing">
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+MIIEYTCCAsmgAwIBAgIVAM3gJSKpn1SE96TXrRTFHFyCwziGMA0GCSqGSIb3DQEBCwUAMCgxJjAk
+BgNVBAMMHW5vZ3NoaWItaWRwLmNpcy5pYmFyYWtpLmFjLmpwMB4XDTI1MDYxOTA1NTQwMFoXDTQ1
+MDYxOTA1NTQwMFowKDEmMCQGA1UEAwwdbm9nc2hpYi1pZHAuY2lzLmliYXJha2kuYWMuanAwggGi
+MA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQCtW0d/vnjfj9Hof51Pa9HXVfCOkQrt1I19oaDX
+miF+pMTPCTV32Q1JrSenLru2GTe/9BBTfsN8PL27RDXaFyxldnfy32FUYbboEJ6F70WvTGeFespM
+Pk0J2uENHNkJCg2hgoGvDTcW+k/qSwm810W7YXvm+pLwKeX+ZDokI/51Y3jRXFO6sSfYD1j8xkYi
+mfn38aiGjnkT5z1d4ZG4UCyKtBJwk+gqaS1H0KyVfmdvKsIutsCy/aLnTh1pn2IUGVNK0V/6uf6n
+nxe+h0r7evRBxUAyXW2xt+PETHJlsl/ZvgPbwcRcVU2Qhh7EP5Xrt2C74n5/nPksOR00+o62Jfiz
+2JfV7r+03UbHwkXtaxTIewbJYqe/JYVgGQ3O7SFySwm1O1OyMMO+3oBYHRVSNBx05FT2YjY51Ias
+epU/IKnOtx0jnwzEHxrHTH6HFFuLlhFvNcbacYH3eVsl9aFPM58N8+0gGkC8C62v8rH+0HYq8Xk5
+WcScSfh8YI92wYvAQAMCAwEAAaOBgTB/MB0GA1UdDgQWBBSsE6vVSi+hpUseNHwOLX9epNW1HDBe
+BgNVHREEVzBVgh1ub2dzaGliLWlkcC5jaXMuaWJhcmFraS5hYy5qcIY0aHR0cHM6Ly9ub2dzaGli
+LWlkcC5jaXMuaWJhcmFraS5hYy5qcC9pZHAvc2hpYmJvbGV0aDANBgkqhkiG9w0BAQsFAAOCAYEA
+CqR5gVmuluP0jiz6HJ+6oDojRApEuO4Kn/Tqsys1dZOQyiXr3DHJC0H5ICQnJ7qBZO3DbowpRgOg
+HuEcIwh51VeLQiGhk8T6BLxwXtLX98bE71pnLoOAsM7EU4VoQ9FyoLoQ6tva/dRmkU8HAmuACHiO
+nT2u0WoqkdxTuQuNkuoIOVeAlySMgZ+hAt/BJCTvT2KiwuB9YGkl9tNw8THmWtoFJiLlfnU9uew3
+MtxRpPe5WGOCcvHyzlEllnj28QwP6r0dSXsbavu/neeeVKaFQ4O0wqmDc42SYTpW85gNs2lBFCTR
+T6MlEcAB7NLZrbidA9NdhQSEMr4VrS/XdGo09QB89CgpY7bl1DSZUGTEHIfUjUnN4sb9YgmDg6kN
+tPXwWVFi66F09s5TjNuqIkThtUaVjcdezSuU9TePL4mC1JhR7MjCI6ACJi0zG+YHvc9ka8X7HZSk
+9N5eFeCuMpLcuusJYeMOYihxfSWqHfSOywEHH3fWXb46mK9rRL4258Yz
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+        <md:KeyDescriptor use="encryption">
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+MIIEYDCCAsigAwIBAgIUblsiRcAUgtuf6nDWMc7+3CDyacUwDQYJKoZIhvcNAQELBQAwKDEmMCQG
+A1UEAwwdbm9nc2hpYi1pZHAuY2lzLmliYXJha2kuYWMuanAwHhcNMjUwNjE5MDU1NDAwWhcNNDUw
+NjE5MDU1NDAwWjAoMSYwJAYDVQQDDB1ub2dzaGliLWlkcC5jaXMuaWJhcmFraS5hYy5qcDCCAaIw
+DQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBAMaBNfNP9LJ9UTtDD7CdzGvTDsbGbz1n+z+edUBK
+XV0lBAd9kS+7nY0lDutP451Ar271LQiKw1bN9VBoqABnO9PaJMZxdp7ykpGWvC8SuSnwjZ3+kjR6
+sZFcUfXWZwoColu+zTSBahyVaS05A9VwA+hDZZiP+jFOO3IgyTYV6iTPtcj7nLMm8TbyyJyw3K+T
+BCiYJ7TMSIz8QAKDct0aMHu4Uieo6IaIpoRMEtl4TulPCJc6sj/srSwkRHXch0c1DnkF0v1iyufj
+kD3oCJ5ZJGrgn1uxy6O9xwzvWAEJSvVeODcUHeoIYBJim3jWfX68NR+dAylrpClohK9vjZ0M3/VT
+ExvQXi1Xult/P3VLZo+Kpvd5TuS4C6khC3Jv6ooGMO4zHCCC/cTM/rfhapYcvQUg9xVssRXnJ0lM
+tHDUZ/E8LfMDcZhub3d2lM/ceyaK3MGniUp9x77WRaiKaTx4GHND8wJba+ltFqW0ZCLQTfzehncQ
+e2Elg4xOXbd6hzLRhQIDAQABo4GBMH8wHQYDVR0OBBYEFB6u+BLZMPC+F3TJbhV7a2NpytYlMF4G
+A1UdEQRXMFWCHW5vZ3NoaWItaWRwLmNpcy5pYmFyYWtpLmFjLmpwhjRodHRwczovL25vZ3NoaWIt
+aWRwLmNpcy5pYmFyYWtpLmFjLmpwL2lkcC9zaGliYm9sZXRoMA0GCSqGSIb3DQEBCwUAA4IBgQBP
+H0n08cGq33MSXo59LHZFQcJhNLs5bxlhyjw/FUSmgShLDc2CJNFUuWWxWHPudd7j5INMRi2KpZvk
+ja/TFzNh/Fg/ulrVO8TgR/f/c8eg1Bo0MYjrPjxonE/CqIXGvbRFrzK2Bj4nF69U1qG/Jv7NTAcv
+QlbPHGxsTqF4eD069ZjNwnsgpJ6eFnYZPXi4m6IiyGO4hPcuwzkapcgb1We1tB+HpHaAwMijKgng
+PtglANMkIwSZwcZtlUtBY6PIcacZOl558x46DGylYZeW+GEWtG1SYawm4SEicjNOvXyvGQNbNxX1
+QMm/yxVZicAJmC2D7E54EaFGV3O0h6Ny7r32KBFZmjfY2yf7Bnp01yLvzV+CBlYD6cmiXC/i54c/
+N038fCCERwk518gnvKIm2Ipe3ETmy66yJOmKTLCodEWLn/BXV9c3dj1djWL4xyLntrbyQn2qynhV
+qTO3gHqUfRwSK+/RefsKMbnJtilrEgi//eouVqnHIF38AZqoN6HrZjw=
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+        <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://nogshib-idp.cis.ibaraki.ac.jp/idp/profile/SAML2/SOAP/ArtifactResolution" />
+        <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign" Location="https://nogshib-idp.cis.ibaraki.ac.jp/idp/profile/SAML2/POST-SimpleSign/SSO" />
+        <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://nogshib-idp.cis.ibaraki.ac.jp/idp/profile/SAML2/Redirect/SSO" />
+        <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://nogshib-idp.cis.ibaraki.ac.jp/idp/profile/SAML2/POST/SSO" />
+    </md:IDPSSODescriptor>
+
+</md:EntityDescriptor>

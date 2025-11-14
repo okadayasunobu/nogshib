@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans  xmlns="http://www.springframework.org/schema/beans"
+        xmlns:context="http://www.springframework.org/schema/context"
+        xmlns:util="http://www.springframework.org/schema/util"
+        xmlns:p="http://www.springframework.org/schema/p"
+        xmlns:c="http://www.springframework.org/schema/c"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation=  "http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+        default-init-method="initialize"
+        default-destroy-method="destroy">
+
+<!-- ==========================================================
+    Multi-Factor Authentication (MFA) Transition Map
+    学認 AAL2 対応設定例
+========================================================== -->
+<util:map id="shibboleth.authn.MFA.TransitionMap">
+	<entry key="https://www.gakunin.jp/profile/AAL2">
+            <bean parent="shibboleth.authn.MFA.Transition"
+                p:nextFlowStrategy-ref="checkWebAuthn" />
+        </entry>
+        <!-- デフォルト（AAL1相当：Password認証） -->
+     		<entry key="">
+			<bean parent="shibboleth.authn.MFA.Transition" p:nextFlowStrategy-ref="checkPasswordOrWebAuthn" />
+    		</entry>
+
+    </util:map>
+    <bean id="checkPasswordOrWebAuthn" parent="shibboleth.ContextFunctions.Scripted" factory-method="inlineScript">
+    	<constructor-arg>
+        	<value>
+        	<![CDATA[
+            nextFlow = "authn/WebAuthn"
+			logger = Java.type("org.slf4j.LoggerFactory").getLogger("net.shibboleth.idp.authn.mfa");
+            logger.debug( '[MFA] Next Flow is ' + nextFlow );
+            logger.info("[MFA-DEFAULT] checkPasswordOrWebAuthn fired → " + nextFlow);
+			// Check if we can use a WebAuthn flow, or if the user has no credentials available to them use a password flow
+            webauthnRegCtx = input.getSubcontext("net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext");
+            if (webauthnRegCtx != null){
+            	if (!webauthnRegCtx.isWebAuthnAvailable()){
+                	nextFlow = "authn/Password"
+            	}
+        	}
+        	nextFlow;   // pass control to WebAuthnFlow
+    		]]>
+        	</value>
+    	</constructor-arg>
+	</bean>
+<!-- ==========================================================
+        Scripted Strategy: checkPasswordOrWebAuthn
+        - AAL2要求時にWebAuthnを試行
+        - WebAuthn未登録ならPasswordにフォールバック
+========================================================== -->
+	  <bean id="checkWebAuthn" parent="shibboleth.ContextFunctions.Scripted" factory-method="inlineScript">
+	<constructor-arg>
+		<value>
+		<![CDATA[
+      			var logger = Java.type("org.slf4j.LoggerFactory").getLogger("net.shibboleth.idp.authn.mfa");
+      // まず WebAuthn を起動（フロー内で username 画面→資格情報検索まで行わせる）
+      			var nextFlow = "authn/WebAuthn";
+      			logger.info("[MFA-AAL2] Prefer WebAuthn");
+      			nextFlow;
+    		]]></value>
+  	</constructor-arg>
+  	</bean>
+
+</beans>

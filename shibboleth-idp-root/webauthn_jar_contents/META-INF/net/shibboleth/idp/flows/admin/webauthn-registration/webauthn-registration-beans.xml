@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util" xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:c="http://www.springframework.org/schema/c" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+    default-init-method="initialize" default-destroy-method="destroy">
+
+    <bean id="shibboleth.AdminProfileId" class="java.lang.String"
+        c:_0="http://shibboleth.net/ns/profiles/admin/webauthn/register-credential" />
+
+    <!-- Flow Functions -->
+
+    <bean id="shibboleth.ChildLookup.WebAuthnRegistrationContext"
+        class="org.opensaml.messaging.context.navigate.ChildContextLookup"
+        c:type="#{ T(net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext) }" />
+        
+    <bean id="shibboleth.ChildLookup.WebAuthnRegistrationC14nContext" parent="shibboleth.Functions.Compose">
+        <constructor-arg name="g">
+            <bean class="org.opensaml.messaging.context.navigate.ChildContextLookup"
+            c:type="#{ T(net.shibboleth.idp.authn.context.SubjectCanonicalizationContext) }" />
+        </constructor-arg>
+        <constructor-arg name="f" ref="shibboleth.ChildLookup.WebAuthnRegistrationContext"/>
+    </bean>
+    
+        
+    <!-- Abstract parent beans -->    
+          
+    <bean id="AbstractWebAuthnRegistrationAction" scope="prototype" abstract="true"
+        p:webAuthnClient="#{getObject('shibboleth.authn.WebAuthn.WebAuthnAuthenticationClientFactory') ?: getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnAuthenticationClientFactory')}"
+        p:credentialRepository="#{getObject('shibboleth.authn.WebAuthn.CredentialRepository') ?: getObject('shibboleth.authn.WebAuthn.DefaultCredentialRepository')}"
+        p:fidoMetadataService="#{'false'.equals('%{idp.authn.webauthn.metadata.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory')}"/>
+  
+    <bean id="shibboleth.authn.WebAuthn.registration.AbstractAuthenticatorPolicyRule" scope="prototype" abstract="true"
+        p:fidoMetadataService="#{'false'.equals('%{idp.authn.webauthn.metadata.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory')}"/>
+     
+    <bean id="shibboleth.authn.WebAuthn.registration.FunctionalAuthenticatorPolicyRule" abstract="true"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.policy.impl.FunctionalAuthenticatorPolicyRule" 
+        p:fidoMetadataService="#{'false'.equals('%{idp.authn.webauthn.metadata.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory')}"/>
+        
+
+    <!-- Flow beans -->
+    
+    <bean id="PopulateInlineEnrolmentContext" scope="prototype" 
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.PopulateInlineEnrolmentContext"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier"
+        p:enabled="%{idp.authnwebauthn.registration.allowInline:true}"/>
+    
+    
+    <!-- Initial Username input collection -->
+    <bean id="PopulateInitialWebAuthnRegistrationContext" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.PopulateWebAuthnRegistrationContext"        
+        p:usernameRequired="false">
+    </bean>
+    
+    <bean id="IsAdminUsernameCollectionEnabled" class="net.shibboleth.idp.plugin.authn.webauthn.context.logic.IsAdminUsernameCollectionEnabled"
+        p:usernameCollectionRequired="%{idp.authn.webauthn.registration.collectUsername:true}"/>  
+        
+    <bean id="ExtractUsernameFromForm" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ExtractUsernameFromRegistrationForm"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier"
+        p:uppercase="%{idp.authn.webauthn.registration.username.uppercase:false}"
+        p:lowercase="%{idp.authn.webauthn.registration.username.lowercase:false}"
+        p:trim="%{idp.authn.webauthn.registration.username.trim:false}"
+        p:transforms="#{getObject('shibboleth.authn.WebAuthn.registration.UsernameTransformations')}"/>
+    
+    <bean id="InitializeSubjectCanonicalizationContext" parent="AbstractWebAuthnBaseAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.InitializeSubjectCanonicalizationContext" scope="prototype"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext"/>
+    
+    <bean id="PopulateSubjectCanonicalizationContext" 
+        class="net.shibboleth.idp.authn.impl.PopulateSubjectCanonicalizationContext" scope="prototype"
+        p:availableFlows-ref="%{idp.authn.webauthn.registration.c14n.postUsernameFlows:shibboleth.PostLoginSubjectCanonicalizationFlows}" />   
+    
+    <bean id="UpdateRegistrationContextUsernameWithC14nPrincipal" parent="AbstractWebAuthnBaseAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.UpdateWebAuthnContextWithC14nPrincipal"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext"/>
+        
+    <bean id="LookupRegisteredCredentialsPostC14n" parent="AbstractWebAuthnBaseAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.LookupRegisteredCredentials"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext"
+        p:usernameRequired="false"/>
+    
+    <!-- Start of registration flow post authentication -->
+    
+    <!-- 
+        Important that this gets the username from the subject context, not the initial context that is created 
+        Also, removes any initial registration contexts to avoid contamination.
+    -->
+    <bean id="PopulateWebAuthnRegistrationContext" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.PopulateWebAuthnRegistrationContext"
+        p:usernameRequired="true"
+        p:removeExistingRegistrationContext="true"
+        p:usernameLookupStrategy="#{getObject('%{idp.authn.webauthn.registration.principalname.strategy:shibboleth.authn.WebAuthn.registration.SubjectContextUsernameLookupStrategy}')}">
+    </bean>        
+    
+    <bean id="shibboleth.authn.WebAuthn.registration.SubjectContextUsernameLookupStrategy" lazy-init="true" scope="singleton"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.UsernameLookupFromSubjectContext" />
+    
+    <bean id="shibboleth.authn.WebAuthn.registration.AttributeContextWebAuthnNameLookupStrategy" lazy-init="true" scope="singleton"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.AttributeContextStringLookupStrategy"
+        p:attributeId="%{idp.authn.webauthn.registration.name.attributeId:#{null}}"/>
+    
+    <bean id="AddAttestationConveyancePreference" scope="prototype" parent="AbstractWebAuthnRegistrationAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.AddAttestationConveyancePreference"
+        p:attestationConveyancePreference="#{getObject('shibboleth.authn.WebAuthn.registration.AttestationConveyancePreferenceLookupStrategy') == null ? '%{idp.authn.webauthn.registration.attestationConveyancePreference:none}' : null}"
+        p:attestationConveyancePreferenceLookupStrategy="#{getObject('shibboleth.authn.WebAuthn.registration.AttestationConveyancePreferenceLookupStrategy')}"/>
+
+    <bean id="AddResidentKeyRequirement" scope="prototype" parent="AbstractWebAuthnRegistrationAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.AddResidentKeyRequirement"
+        p:residentKeyRequirement="#{getObject('shibboleth.authn.WebAuthn.registration.ResidentKeyRequirementLookupStrategy') == null ? '%{idp.authn.webauthn.registration.residentKey:preferred}' : null}"
+        p:residentKeyRequirementLookupStrategy="#{getObject('shibboleth.authn.WebAuthn.registration.ResidentKeyRequirementLookupStrategy')}" />
+
+    <bean id="AddAuthenticatorAttachmentRequirement" scope="prototype" parent="AbstractWebAuthnRegistrationAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.AddAuthenticatorAttachmentRequirement"
+        p:authenticatorAttachmentRequirement="#{getObject('shibboleth.authn.WebAuthn.registration.AuthenticatorAttachmentRequirementLookupStrategy') == null ? '%{idp.authn.webauthn.registration.authenticatorAttachment:any}' : null}" 
+        p:authenticatorAttachmentRequirementLookupStrategy="#{getObject('shibboleth.authn.WebAuthn.registration.AuthenticatorAttachmentRequirementLookupStrategy')}"/>
+
+    <bean id="AddUserVerificationRequired" parent="AbstractWebAuthnBaseAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.AddUserVerificationRequirement" scope="prototype"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext"
+        p:userVerificationRequirement="%{idp.authn.webauthn.registration.userVerification:discouraged}" />
+
+    <bean id="LookupRegisteredCredentials" parent="AbstractWebAuthnBaseAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.LookupRegisteredCredentials"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext" />
+
+    <bean id="LabelCredentialRecords" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.LabelCredentialRecords"
+        p:labeller="#{getObject('%{idp.authn.webauthn.registration.labeller:shibboleth.authn.WebAuthn.ChainingCredentialLabeller}')}">
+         <property name="credentialsLookupStrategy">
+            <bean id="ExistingCredentialsLookup" class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ExistingRegistrationCredentialsLookupStrategy"/>
+        </property>
+    </bean>
+    
+    <bean id="GenerateServerChallenge" parent="AbstractWebAuthnBaseAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.impl.GenerateServerChallenge"
+        p:webAuthnContextLookupStrategy-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext" 
+        p:challengeGeneratorStrategy="#{getObject('shibboleth.authn.WebAuthn.ChallengeGeneratorStrategy')}"/>
+
+    <bean id="AddUserId" parent="AbstractWebAuthnRegistrationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.AddUserId"
+        p:userIdGeneratorStrategy="#{getObject('%{idp.authn.webauthn.registration.userid.strategy:shibboleth.authn.WebAuthn.registration.RandomUserIdGenerator}')}"/>
+    
+    <bean id="AddUserName" parent="AbstractWebAuthnRegistrationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.AddUserName"
+         p:userNameLookupStrategy="#{getObject('%{idp.authn.webauthn.registration.name.strategy:shibboleth.authn.WebAuthn.registration.SubjectContextUsernameLookupStrategy}')}"/>
+    
+    <bean id="AddDisplayName" parent="AbstractWebAuthnRegistrationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.AddDisplayName"
+        p:displayNameLookupStrategy="#{getObject('%{idp.authn.webauthn.registration.displayname.strategy:shibboleth.authn.WebAuthn.registration.SubjectContextDisplayNameLookupStrategy}')}"/>
+    
+    <bean id="shibboleth.authn.WebAuthn.registration.SubjectContextDisplayNameLookupStrategy" lazy-init="true"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.UsernameLookupFromSubjectContext"/>
+        
+    <bean id="shibboleth.authn.WebAuthn.registration.AttributeContextDisplayNameLookupStrategy" lazy-init="true" scope="singleton"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.AttributeContextStringLookupStrategy"
+        p:attributeId="%{idp.authn.webauthn.registration.displayname.attributeId:#{null}}"/>
+    
+    <bean id="shibboleth.authn.WebAuthn.registration.AttributeContextUserIdLookupStrategy" scope="singleton" lazy-init="true"
+        class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.AttributeContextByteArrayLookupStrategy"
+        p:attributeId="%{idp.authn.webauthn.registration.userid.attributeId:#{null}}"/>
+        
+    <bean id="shibboleth.authn.WebAuthn.registration.RandomUserIdGenerator" scope="singleton" lazy-init="true"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.RandomUserIdGenerator"/>
+
+    <bean id="CreatePublicKeyCredentialCreationOptions" parent="AbstractWebAuthnRegistrationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.CreatePublicKeyCredentialCreationOptions"/>
+
+    <bean id="ExtractPublicKeyCredentialAttestationFromFormRequest" parent="AbstractWebAuthnRegistrationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ExtractPublicKeyCredentialAttestationFromFormRequest"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier" />
+
+    <bean id="ExtractKeyRemovalInformationFromFormRequest" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ExtractKeyInformationFromFormRequest"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier">
+        <property name="contextSettingConsumer">
+            <bean class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.RegistrationContextCredentialRemovalConsumer"/>
+        </property> 
+     </bean>
+
+    <bean id="DeletePublicKeyCredential" parent="AbstractWebAuthnRegistrationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.DeletePublicKeyCredential" 
+        p:populateAuditContextAction="#{%{idp.authn.webauthn.registration.audit.enabled:false} ? getObject('RegistrationOperationPopulateAuditContext') : null}"
+        p:writeAuditLogAction="#{%{idp.authn.webauthn.registration.audit.enabled:false} ? getObject('WriteAdminAuditLog') : null}"
+        p:auditContextCreationStrategy-ref="AdminAuditContextLookup" />        
+
+    <bean id="CheckRegistrationPolicy" parent="AbstractWebAuthnRegistrationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.CheckRegistrationPolicy"
+        p:authenticatorPolicy="#{getObject('%{idp.authn.webauthn.registration.authenticator.policy:shibboleth.authn.WebAuthn.registration.ChainedRegistrationPolicy}')}"
+        p:activationCondition="%{idp.authn.webauthn.registration.authenticator.policy.enabled:false}"/>
+        
+     <bean id="shibboleth.authn.WebAuthn.registration.ChainedRegistrationPolicy" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.policy.impl.ChainingAuthenticatorPolicyRule"
+        p:authenticatorPolicyChain="#{getObject('%{idp.authn.webauthn.registration.authenticator.policy.chainedlist:shibboleth.authn.WebAuthn.registration.ChainedRegistrationPolicyList}')}"/>         
+              
+    <bean id="ValidateAuthenticatorAttestationResponse" parent="AbstractWebAuthnRegistrationAction"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ValidateAuthenticatorAttestationResponse" />
+
+    <bean id="StorePublicKeyCredential" parent="AbstractWebAuthnRegistrationAction" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.StorePublicKeyCredential"
+        p:credentialRepository-ref="shibboleth.authn.WebAuthn.DefaultCredentialRepository"
+        p:populateAuditContextAction="#{%{idp.authn.webauthn.registration.audit.enabled:false} ? getObject('RegistrationOperationPopulateAuditContext') : null}"
+        p:writeAuditLogAction="#{%{idp.authn.webauthn.registration.audit.enabled:false} ? getObject('WriteAdminAuditLog') : null}"
+        p:auditContextCreationStrategy-ref="AdminAuditContextLookup" />    
+        
+   <bean id="InlineEnrolmentRedirectFunction" class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.InlineEnrolmentRedirectFunction"/>    
+
+    <!-- Default functions to produce messages for the registration view. -->
+    <bean id="DefaultRegistrationInfoMessageFunction" class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.RegistrationInfoMessageLookupFunction" lazy-init="true"
+        p:genericMessageID="%{idp.authn.webauthn.registration.genericMessageID:}" />
+    <bean id="DefaultRegistrationErrorMessageFunction" class="net.shibboleth.idp.plugin.authn.webauthn.context.navigate.RegistrationErrorMessageLookupFunction" lazy-init="true"
+        p:genericMessageID="%{idp.authn.webauthn.registration.genericMessageID:}" />
+        
+    <alias alias="RegistrationInfoMessageFunction" name="%{idp.authn.webauthn.registration.infoMessageFunction:DefaultRegistrationInfoMessageFunction}" />       
+    <alias alias="RegistrationErrorMessageFunction" name="%{idp.authn.webauthn.registration.errorMessageFunction:DefaultRegistrationErrorMessageFunction}" />
+
+     <!--  Audit logging beans -->    
+    
+    <util:map id="shibboleth.authn.WebAuthn.admin.AuditFormattingMap">
+        <entry key="#{'%{idp.authn.webauthn.registration.audit.category:Shibboleth-Audit.WebAuthnRegistration}'.trim()}"
+            value="#{'%{idp.authn.webauthn.registration.audit.format:%a|%T|%u|%WebAuthnAdminAO|%WebAuthnAdminAction|%WebAuthnAdminCR|%WebAuthnAdminCA|%WebAuthnAdminAU|%UA}'.trim()}" />
+    </util:map>
+    
+    
+    <bean id="RegistrationOperationPopulateAuditContext" parent="shibboleth.admin.AbstractPopulateAuditContext"
+        p:fieldExtractors="#{getObject('shibboleth.authn.WebAuthn.registration.audit.AuditExtractors') ?: getObject('shibboleth.authn.WebAuthn.registration.audit.DefaultAuditExtractors')}"
+        p:clearAuditContext="true"/>
+        
+     <bean id="shibboleth.authn.WebAuthn.registration.audit.DefaultAuditExtractors" parent="shibboleth.authn.WebAuthn.admin.DefaultAuditExtractors" 
+        lazy-init="true" class="org.springframework.beans.factory.config.MapFactoryBean">
+        <property name="sourceMap">
+             <map merge="true">  
+                 <entry>
+                    <key>
+                        <util:constant
+                            static-field="net.shibboleth.idp.plugin.authn.webauthn.audit.WebAuthnAuditFields.CRED_REMOVED" />
+                    </key>
+                    <bean class="net.shibboleth.idp.plugin.authn.webauthn.audit.impl.WebAuthnUserCredentialToRemoveAuditExtractor"
+                        c:_0-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext" />
+                </entry>
+                <entry>
+                    <key>
+                        <util:constant
+                            static-field="net.shibboleth.idp.plugin.authn.webauthn.audit.WebAuthnAuditFields.CRED_ADDED" />
+                    </key>
+                    <bean class="net.shibboleth.idp.plugin.authn.webauthn.audit.impl.WebAuthnUserCredentialAddedAuditExtractor"
+                        c:_0-ref="shibboleth.ChildLookup.WebAuthnRegistrationContext" />
+                </entry>
+             </map>
+        </property>
+    </bean>
+    
+    <import resource="conditional:%{idp.home}/conf/authn/webauthn-registration-config.xml" />
+
+</beans>

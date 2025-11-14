@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util" xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:c="http://www.springframework.org/schema/c" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+    default-init-method="initialize" default-destroy-method="destroy">
+    
+    <!-- Message properties -->
+    
+    <!-- This extends the original user-space resource list with the plugin-embedded messages. -->
+    <bean id ="ExtendedMessageSourceResources" parent="shibboleth.ListCombiner"
+          p:firstList-ref="#{'%{idp.message.resources:shibboleth.MessageSourceResources}'.trim()}" >
+        <property name="secondList">
+            <util:list >
+                <value>classpath:/net/shibboleth/idp/plugin/authn/webauthn/messages</value>
+            </util:list>
+        </property>
+    </bean>
+
+    <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource"
+        p:cacheSeconds="%{idp.message.cacheSeconds:300}"
+        p:basenames-ref="ExtendedMessageSourceResources"
+        p:defaultEncoding="UTF-8" />
+
+    <!-- Abstract parent beans -->        
+      
+    <bean id="AbstractWebAuthnBaseAction" scope="prototype" abstract="true"
+        p:webAuthnClient="#{getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnAuthenticationClientFactory')}"
+        p:credentialRepository="#{getObject('shibboleth.authn.WebAuthn.DefaultCredentialRepository')}"
+        p:fidoMetadataService="#{'false'.equals('%{idp.authn.webauthn.metadata.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultWebAuthnFidoMetadataServiceFactory')}"
+        p:aaguidService="#{'false'.equals('%{idp.authn.webauthn.metadata.aaguid.enabled:false}') ? null : getObject('shibboleth.authn.WebAuthn.DefaultPasskeyAaguidMetadataServiceFactory')}"/>
+    
+    
+    <!-- Beans shared across two or more flows -->
+      
+    <bean id="shibboleth.authn.WebAuthn.ChainingCredentialLabeller" scope="prototype"
+        class="net.shibboleth.idp.plugin.authn.webauthn.admin.impl.ChainingCredentialLabeller"
+        c:labellers="#{getObject('shibboleth.authn.WebAuthn.CredentialLabellerList')}"/>
+    
+    <!-- Used in views to calculate CSP hashes and nonces, remove and adjust beans in flow when compatibility bumped past 5.0 -->
+    
+    <bean id="WebAuthnCSPDigester" class="net.shibboleth.shared.codec.StringDigester"
+        c:algorithm="SHA256" c:format="BASE64" />
+
+    <bean id="WebAuthnCSPNonce" destroy-method=""
+            class="net.shibboleth.shared.security.IdentifierGenerationStrategy" factory-method="getInstance">
+        <constructor-arg>
+            <util:constant
+                static-field="net.shibboleth.shared.security.IdentifierGenerationStrategy.ProviderType.SECURE" />
+        </constructor-arg>
+        <constructor-arg>
+            <bean class="net.shibboleth.shared.security.RandomIdentifierParameterSpec"
+                    c:identifierSize="16">
+                <constructor-arg name="source">
+                    <null/>
+                </constructor-arg>
+                <constructor-arg name="identifierEncoder">
+                    <null/>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+    </bean>
+    
+    <bean id="WriteAdminAuditLog"
+        class="net.shibboleth.idp.profile.audit.impl.WriteAuditLog" scope="prototype" lazy-init="true"
+        p:formattingMap-ref="shibboleth.authn.WebAuthn.admin.AuditFormattingMap"
+        p:dateTimeFormat="#{getObject('shibboleth.AuditDateTimeFormat')}"
+        p:useDefaultTimeZone="#{getObject('shibboleth.AuditDefaultTimeZone') ?: false}"
+        p:includeProfileLoggingId="false"
+        p:httpServletRequestSupplier-ref="shibboleth.HttpServletRequestSupplier" 
+        p:activationCondition="true"
+        p:auditContextLookupStrategy-ref="AdminAuditContextLookup"/>
+        
+     <!-- Private copy of AuditContext for admin flows. TODO this is the default, is there somewhere better to put it?-->    
+    <bean id="AdminAuditContextLookup"
+        class="org.opensaml.messaging.context.navigate.ChildContextLookup"
+        c:type="#{ T(net.shibboleth.profile.context.AuditContext) }"
+        c:createContext="true" />
+     
+     <bean id="shibboleth.authn.WebAuthn.admin.AuditFormattingMapParser" scope="prototype" lazy-init="true"
+        class="net.shibboleth.idp.profile.audit.impl.PopulateAuditContext.FormattingMapParser"
+        c:_0-ref="shibboleth.authn.WebAuthn.admin.AuditFormattingMap" />
+       
+     <bean id="shibboleth.admin.AbstractPopulateAuditContext" abstract="true"
+        class="net.shibboleth.idp.profile.audit.impl.PopulateAuditContext" scope="prototype"
+        p:auditContextCreationStrategy-ref="AdminAuditContextLookup"
+        p:formattingMapParser-ref="shibboleth.authn.WebAuthn.admin.AuditFormattingMapParser"
+        p:dateTimeFormat="#{getObject('shibboleth.AuditDateTimeFormat')}"
+        p:useDefaultTimeZone="#{getObject('shibboleth.AuditDefaultTimeZone') ?: false}"
+        p:fieldReplacements="#{getObject('shibboleth.AuditFieldReplacementMap')}" />
+        
+          
+    <bean id="shibboleth.authn.WebAuthn.admin.DefaultAuditExtractors" lazy-init="true"
+            class="org.springframework.beans.factory.config.MapFactoryBean">
+        <property name="sourceMap">
+             <map>  
+                <entry>
+                    <key>
+                        <util:constant static-field="net.shibboleth.idp.profile.IdPAuditFields.USERNAME"/>
+                    </key>
+                    <bean parent="shibboleth.Functions.Compose"
+                        c:g-ref="shibboleth.PrincipalNameLookup.Subject"
+                        c:f-ref="shibboleth.ChildLookup.SubjectContext" />
+                </entry>
+             </map>
+        </property>
+    </bean>
+    
+
+</beans>

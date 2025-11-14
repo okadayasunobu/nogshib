@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:c="http://www.springframework.org/schema/c"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+
+       default-init-method="initialize"
+       default-destroy-method="destroy">
+
+                <util:map id="shibboleth.authn.MFA.TransitionMap">
+                <entry key="">
+                        <bean parent="shibboleth.authn.MFA.Transition" p:nextFlowStrategy-ref="checkPasswordOrWebAuthn" />
+                </entry>
+                </util:map>
+
+                <!-- Use the webauthn flow unless a registration context exists and the user does not have any FIDO2 credentials registered,
+                        then use a password flow.-->
+                <bean id="checkPasswordOrWebAuthn" parent="shibboleth.ContextFunctions.Scripted" factory-method="inlineScript">
+                <constructor-arg>
+                        <value>
+                        <![CDATA[
+                nextFlow = "authn/WebAuthn"
+                                logger = Java.type("org.slf4j.LoggerFactory").getLogger("net.shibboleth.idp.attribute");
+                logger.debug( '[MFA] Next Flow is ' + nextFlow );
+                                // Check if we can use a WebAuthn flow, or if the user has no credentials available to them use a password flow
+                webauthnRegCtx = input.getSubcontext("net.shibboleth.idp.plugin.authn.webauthn.context.WebAuthnRegistrationContext");
+                if (webauthnRegCtx != null){
+                        if (!webauthnRegCtx.isWebAuthnAvailable()){
+                        nextFlow = "authn/Password"
+                        }
+                }
+                nextFlow;   // pass control to WebAuthnFlow
+                        ]]>
+                        </value>
+                </constructor-arg>
+                </bean>
+<!---->
+</beans>
